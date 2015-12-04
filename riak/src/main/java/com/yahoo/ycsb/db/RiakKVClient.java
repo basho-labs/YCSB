@@ -39,7 +39,7 @@ import static com.yahoo.ycsb.db.RiakUtils.*;
  * @author Brian McClain <bmcclain at basho dot com>
  * @author Sergey Galkin <srggal at gmail dot com>
  */
-public final class RiakKVDBClient extends AbstractRiakClient {
+public final class RiakKVClient extends AbstractRiakClient {
     /**
 	 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
 	 *

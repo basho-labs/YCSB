@@ -37,8 +37,8 @@ import org.junit.runners.MethodSorters;
  * @author Sergey Galkin <srggal at gmail dot com>
  */
 @FixMethodOrder(MethodSorters.JVM)
-public class RiakDBClientTest {
-	private RiakKVDBClient cli;
+public class RiakKVClientTest {
+	private RiakKVClient cli;
     private String bucket = "ycsb-test";
 
     private RiakFunctions riakFunctions;
@@ -51,7 +51,7 @@ public class RiakDBClientTest {
 	public void setUp() throws Exception {
 
         // -- Spawn cli
-		cli = new RiakKVDBClient();
+		cli = new RiakKVClient();
 
 		// Load default properties
 		final InputStream ios = getClass().getResourceAsStream("/riak-test.properties");
