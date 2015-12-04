@@ -18,7 +18,6 @@ package com.yahoo.ycsb.db;
 import com.yahoo.ycsb.Status;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
@@ -54,14 +53,10 @@ public final class RiakKVDBClient extends AbstractRiakClient {
 	public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
         try {
         	final Location location = config().mkLocationFor(table, key);
-            final FetchValue fv = new FetchValue.Builder(location)
-            	.withOption(FetchValue.Option.R, config().readQuorum())
-            	.build();
-
-            final FetchValue.Response response = fetchValue(fv);
+            final FetchValue.Response response = fetchValue(location);
 
             if (response.isNotFound()) {
-                logger.error( "READ FAILED: NOT FOUND");
+                logger.error( "READ FAILED: NOT FOUND for {}", location);
             	return Status.ERROR;
             }
             return Status.OK;
@@ -97,18 +92,10 @@ public final class RiakKVDBClient extends AbstractRiakClient {
 	        	.build();
 
 			final IntIndexQuery.Response response = riakClient.execute(iiq);
-			final List<IntIndexQuery.Response.Entry> entries = response.getEntries();
-			
-			for (int i = 0; i < entries.size(); ++i ) {
-				final Location location = entries.get(i).getRiakObjectLocation();
-
-                final FetchValue fv = new FetchValue.Builder(location)
-	            	.withOption(FetchValue.Option.R, config().readQuorum())
-	            	.build();
-				
-	            final FetchValue.Response keyResponse = fetchValue(fv);
+            for (IntIndexQuery.Response.Entry e: response.getEntries() ) {
+	            final FetchValue.Response keyResponse = fetchValue(e.getRiakObjectLocation());
 	            if (keyResponse.isNotFound()) {
-                    logger.error( "SCAN FAILED: NOT FOUND for {}", location);
+                    logger.error( "SCAN FAILED: NOT FOUND for {}", e.getRiakObjectLocation());
 	            	return Status.ERROR;
 	            }
 			}
@@ -120,10 +107,15 @@ public final class RiakKVDBClient extends AbstractRiakClient {
 	}
 	
 	
-	private FetchValue.Response fetchValue(FetchValue fv) {
+	private FetchValue.Response fetchValue(Location location) {
 		try {
+            final FetchValue fv = new FetchValue.Builder(location)
+                    .withOption(FetchValue.Option.R, config().readQuorum())
+                    .build();
+
 			FetchValue.Response response = null;
-			for (int i = 0; i < config().getReadRetry(); ++i) {
+			for (int i = 0; i < config().readRetryCount(); ++i) {
+
 				response = riakClient.execute(fv);
 				if (!response.isNotFound()){
                     break;
@@ -157,7 +149,7 @@ public final class RiakKVDBClient extends AbstractRiakClient {
 
             final RiakObject object = new RiakObject();
             object.setValue(BinaryValue.create(serializeTable(values)));
-            object.getIndexes().getIndex(LongIntIndex.named("key_int")).add(getKeyAsLong(key));
+            object.getIndexes().getIndex(LongIntIndex.named("key")).add(getKeyAsLong(key));
             StoreValue store = new StoreValue.Builder(object)
             	.withLocation(location)
                 .withOption(Option.W, config().writeQuorum())
@@ -199,9 +191,7 @@ public final class RiakKVDBClient extends AbstractRiakClient {
 	public Status delete(String table, String key) {
         try {
             final Location location = config().mkLocationFor(table, key);
-
-            final DeleteValue dv = new DeleteValue.Builder(location).build();
-            riakClient.execute(dv);
+            riakClient.execute(new DeleteValue.Builder(location).build());
         } catch (Exception e) {
             logger.error("DELETE FAILED: UE", e);
             return Status.ERROR;

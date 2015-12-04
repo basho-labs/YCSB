@@ -36,7 +36,7 @@ public abstract class AbstractRiakClient extends DB {
 
     protected static class Config {
         private static final String HOST_PROPERTY = "riak.hosts";
-        private static final String PORT_PROPERTY = "riak.port";
+        private static final String PORT_PROPERTY = "riak.default_port";
         private static final String BUCKET_TYPE_PROPERTY = "riak.bucket_type";
         private static final String R_VALUE_PROPERTY = "riak.r_val";
         private static final String W_VALUE_PROPERTY = "riak.w_val";
@@ -47,12 +47,12 @@ public abstract class AbstractRiakClient extends DB {
         private String hosts;
         private int r_value;
         private int w_value;
-        private int readRetry;
+        private int readRetryCount;
 
         private Config() {}
 
-        public int getReadRetry() {
-            return readRetry;
+        public int readRetryCount() {
+            return readRetryCount;
         }
 
         public static Config create(Properties props) {
@@ -74,7 +74,7 @@ public abstract class AbstractRiakClient extends DB {
                     props.getProperty(W_VALUE_PROPERTY, "2")
             );
 
-            cfg.readRetry = Integer.parseInt(
+            cfg.readRetryCount = Integer.parseInt(
                     props.getProperty(READ_RETRY_COUNT_PROPERTY, "5")
             );
 
@@ -95,6 +95,12 @@ public abstract class AbstractRiakClient extends DB {
 
         public Quorum writeQuorum() {
             return new Quorum(w_value);
+        }
+
+        public RiakCluster createRiakCluster() throws UnknownHostException {
+            return new RiakCluster.Builder(new RiakNode.Builder(), this.defaultPort, this.hosts)
+                    .build();
+
         }
     }
 
@@ -128,15 +134,13 @@ public abstract class AbstractRiakClient extends DB {
                         config.bucketType,
                         config.r_value,
                         config.w_value,
-                        config.readRetry
+                        config.readRetryCount
                     }
             );
         }
 
-        final RiakNode.Builder builder = new RiakNode.Builder();
-
         try {
-            final RiakCluster riakCluster = new RiakCluster.Builder(builder, config.defaultPort, config.hosts).build();
+            final RiakCluster riakCluster = config.createRiakCluster();
             riakCluster.start();
 
             riakClient = new RiakClient(riakCluster);
