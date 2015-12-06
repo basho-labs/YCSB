@@ -23,16 +23,19 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.basho.riak.client.core.query.RiakObject;
+import com.basho.riak.client.core.query.timeseries.Cell;
+import com.basho.riak.client.core.query.timeseries.ColumnDescription;
+import com.basho.riak.client.core.query.timeseries.QueryResult;
+import com.basho.riak.client.core.query.timeseries.Row;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 
 /**
  * @author Basho Technologies, Inc.
+ * @author Sergey Galkin <srggal at gmail dot com>
  */
 final class RiakUtils {
 
@@ -160,5 +163,73 @@ final class RiakUtils {
 		String key_string = key.replace("user", "").replaceFirst("^0*", "");
     	return Long.parseLong( key_string );
 	}
+
+    static final int TS_NUMBER_OF_INTERNAL_COLUMNS = 4;
+
+    static Row asTSRow(String key, Map<String, ByteIterator> values) {
+        final String parts[] = key.split(",");
+
+        if (parts.length != TS_NUMBER_OF_INTERNAL_COLUMNS){
+            throw new IllegalStateException("Wrong Key format, expected key with timestamp, original key, host and workerId");
+        }
+
+        final long timestamp = Long.parseLong(parts[0]);
+        final String originalKey = parts[1];
+        final String host = parts[2];
+        final String worker = parts[3];
+
+        final int cellCount = values.size() + TS_NUMBER_OF_INTERNAL_COLUMNS;
+        final ArrayList<Cell> cells = new ArrayList<Cell>(cellCount);
+
+        cells.add(new Cell(host));
+        cells.add(new Cell(worker));
+        cells.add(Cell.newTimestamp(timestamp));
+
+
+        if (!values.isEmpty()){
+            cells.add(new Cell(originalKey));
+
+            final Iterator<Map.Entry<String, ByteIterator>> iterator = values.entrySet().iterator();
+            for (int i=TS_NUMBER_OF_INTERNAL_COLUMNS; i<cellCount; ++i) {
+
+                final Map.Entry<String, ByteIterator> e = iterator.next();
+                cells.add(new Cell(e.getValue().toString()));
+            }
+        }
+        return new Row(cells);
+    }
+
+    static Map.Entry<List<ColumnDescription>, Row> asTSRowWithColumns(String key, Map<String, ByteIterator> values) {
+        ArrayList<ColumnDescription> columns = new ArrayList<ColumnDescription>(values.size() + TS_NUMBER_OF_INTERNAL_COLUMNS);
+        columns.add(new ColumnDescription("host", ColumnDescription.ColumnType.VARCHAR));
+        columns.add(new ColumnDescription("worker", ColumnDescription.ColumnType.VARCHAR));
+        columns.add(new ColumnDescription("time", ColumnDescription.ColumnType.TIMESTAMP));
+        columns.add(new ColumnDescription("okey", ColumnDescription.ColumnType.VARCHAR));
+
+        for (String k: values.keySet()){
+            columns.add(new ColumnDescription(k, ColumnDescription.ColumnType.VARCHAR));
+        }
+
+        return new AbstractMap.SimpleImmutableEntry<List<ColumnDescription>, Row>(columns, asTSRow(key, values));
+    }
+
+    static Vector<HashMap<String, ByteIterator>> asSYCSBResults(QueryResult queryResult) {
+        final Vector<HashMap<String, ByteIterator>> result = new Vector<HashMap<String, com.yahoo.ycsb.ByteIterator>>(queryResult.getRows().size());
+
+        final int columnsInTotal = queryResult.getColumnDescriptions().size();
+        final int columnCount = columnsInTotal - TS_NUMBER_OF_INTERNAL_COLUMNS;
+        final List<ColumnDescription> columns = queryResult.getColumnDescriptions();
+
+        for (Row row: queryResult.getRows()){
+            final HashMap<String, ByteIterator> m = new HashMap<String, ByteIterator>(columnCount);
+            for (int i=TS_NUMBER_OF_INTERNAL_COLUMNS; i<columnsInTotal; ++i ){
+                final Cell c = row.getCells().get(i);
+                m.put(columns.get(i).getName(), new ByteArrayByteIterator(c.getVarcharValue().unsafeGetValue()));
+            }
+
+            result.add(m);
+        }
+        return result;
+    }
 
 }

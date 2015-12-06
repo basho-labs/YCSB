@@ -98,9 +98,15 @@ public abstract class AbstractRiakClient extends DB {
         }
 
         public RiakCluster createRiakCluster() throws UnknownHostException {
-            return new RiakCluster.Builder(new RiakNode.Builder(), this.defaultPort, this.hosts)
+            return new RiakCluster.Builder(
+                            RiakNode.Builder.create()
+                                .withRemotePort(this.defaultPort), this.hosts)
                     .build();
 
+        }
+
+        public String getBucketType() {
+            return bucketType;
         }
     }
 

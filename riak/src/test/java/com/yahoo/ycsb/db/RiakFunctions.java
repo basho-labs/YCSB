@@ -1,15 +1,36 @@
+/*
+ * Copyright 2015 Basho Technologies, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.yahoo.ycsb.db;
 
 import com.basho.riak.client.api.cap.Quorum;
+import com.basho.riak.client.api.commands.timeseries.Fetch;
 import com.basho.riak.client.core.RiakCluster;
 import com.basho.riak.client.core.RiakFuture;
 import com.basho.riak.client.core.RiakFutureListener;
 import com.basho.riak.client.core.RiakNode;
+import com.basho.riak.client.core.netty.RiakResponseException;
 import com.basho.riak.client.core.operations.DeleteOperation;
+import com.basho.riak.client.core.operations.FetchBucketPropsOperation;
 import com.basho.riak.client.core.operations.FetchOperation;
 import com.basho.riak.client.core.operations.ListKeysOperation;
 import com.basho.riak.client.core.query.Location;
 import com.basho.riak.client.core.query.Namespace;
+import com.basho.riak.client.core.query.timeseries.Cell;
+import com.basho.riak.client.core.query.timeseries.QueryResult;
+import com.basho.riak.client.core.query.timeseries.Row;
 import com.basho.riak.client.core.util.BinaryValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +126,7 @@ public final class RiakFunctions implements Closeable {
         logger.debug("\n----------\nBucket '{}' has been reset. All existed values were removed", namespace);
     }
 
-    public void awaitWhileAvailable( Location location) throws ExecutionException, InterruptedException {
+    public FetchOperation.Response awaitWhileAvailable( Location location) throws ExecutionException, InterruptedException {
         for (;;) {
             FetchOperation op = new FetchOperation.Builder(location)
                     .withR(Quorum.allQuorum().getIntValue())
@@ -113,10 +134,31 @@ public final class RiakFunctions implements Closeable {
 
             final FetchOperation.Response r = cluster.execute(op).get();
             if (!r.isNotFound()) {
-                break;
+                return r;
             }
             Thread.sleep(500);
         }
+    }
+
+    public QueryResult awaitWhileAvailable( String table, List<Cell> pkeys) throws Exception {
+        return awaitWhileAvailable(table, pkeys, 0);
+    }
+
+    public QueryResult awaitWhileAvailable( String table, List<Cell> pkeys, int retries) throws Exception {
+        QueryResult response = null;
+        for (int i=0; i<retries || retries == 0; ++i) {
+            final com.basho.riak.client.core.operations.ts.FetchOperation op =
+                    new com.basho.riak.client.core.operations.ts.FetchOperation.Builder(BinaryValue.create(table), pkeys)
+                            .withTimeout(100)
+                            .build();
+
+            response = cluster.execute(op).get();
+            if ( response != QueryResult.EMPTY) {
+                return response;
+            }
+            Thread.sleep(500);
+        }
+        return response;
     }
 
     @Override
@@ -126,11 +168,27 @@ public final class RiakFunctions implements Closeable {
         }
     }
 
-    public static RiakFunctions create(RiakNode.Builder builder, int defaultPort, String... hosts) throws UnknownHostException {
-        final RiakCluster cluster = new RiakCluster.Builder(builder, defaultPort, hosts).build();
+    public static RiakFunctions create(RiakNode.Builder builder, String... hosts) throws UnknownHostException {
+        final RiakCluster cluster = new RiakCluster.Builder(builder, hosts).build();
         cluster.start();
 
         return create(cluster);
+    }
+
+    public boolean isTSBucketExists(Namespace ns) throws ExecutionException, InterruptedException {
+        final FetchBucketPropsOperation op = new FetchBucketPropsOperation.Builder(ns).build();
+        cluster.execute(op);
+
+        try {
+            op.get().getBucketProperties();
+            return true;
+        } catch (ExecutionException ex) {
+            if (ex.getCause() instanceof RiakResponseException
+                    && ex.getCause().getMessage().startsWith("No bucket-type named")){
+                return false;
+            }
+            throw ex;
+        }
     }
 
     public static RiakFunctions create(RiakCluster cluster) throws UnknownHostException {

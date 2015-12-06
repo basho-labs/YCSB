@@ -17,18 +17,17 @@ package com.yahoo.ycsb.db;
 
 import static org.junit.Assert.*;
 
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
-import com.basho.riak.client.core.RiakCluster;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
 
+import com.yahoo.ycsb.workloads.CoreWorkload;
 import org.junit.*;
 import org.junit.runners.MethodSorters;
 
@@ -37,44 +36,20 @@ import org.junit.runners.MethodSorters;
  * @author Sergey Galkin <srggal at gmail dot com>
  */
 @FixMethodOrder(MethodSorters.JVM)
-public class RiakKVClientTest {
-	private RiakKVClient cli;
-    private String bucket = "ycsb-test";
-
-    private RiakFunctions riakFunctions;
+public class RiakKVClientTest extends AbstractRiakClientTest<RiakKVClient>{
     private String key = "42";
 
-	/**
+    public RiakKVClientTest() {
+        super(RiakKVClient.class, CoreWorkload.class);
+    }
+
+    /**
 	 * @throws java.lang.Exception
 	 */
 	@Before
 	public void setUp() throws Exception {
-
-        // -- Spawn cli
-		cli = new RiakKVClient();
-
-		// Load default properties
-		final InputStream ios = getClass().getResourceAsStream("/riak-test.properties");
-        assert ios != null;
-		cli.getProperties().load(ios);
-		cli.init();
-
-
-        final RiakCluster cluster = cli.config().createRiakCluster();
-        cluster.start();
-
-        riakFunctions = RiakFunctions.create(cluster);
-
-        riakFunctions.resetAndEmptyBucket(cli.config().mkNamespaceFor(bucket));
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@After
-	public void tearDown() throws Exception {
-		cli.cleanup();
-        riakFunctions.close();
+        super.setUp();
+        riakFunctions.resetAndEmptyBucket(cli().config().mkNamespaceFor(bucket));
 	}
 
     /**
@@ -86,9 +61,9 @@ public class RiakKVClientTest {
         values.put("first_name", "Dave");
         values.put("last_name", "Parfitt");
         values.put("city", "Buffalo, NY");
-        assertEquals(Status.OK, cli.insert(bucket, key, StringByteIterator.getByteIteratorMap(values)));
+        assertEquals(Status.OK, cli().insert(bucket, key, StringByteIterator.getByteIteratorMap(values)));
 
-        riakFunctions.awaitWhileAvailable( cli.config().mkLocationFor(bucket, key));
+        riakFunctions.awaitWhileAvailable( cli().config().mkLocationFor(bucket, key));
     }
 
 	/**
@@ -101,7 +76,7 @@ public class RiakKVClientTest {
         fields.add("last_name");
         fields.add("city");
         HashMap<String, ByteIterator> results = new HashMap<String, ByteIterator>();
-        assertEquals(Status.OK, cli.read(bucket, key, fields, results));
+        assertEquals(Status.OK, cli().read(bucket, key, fields, results));
 	}
 
 	/**
@@ -110,7 +85,7 @@ public class RiakKVClientTest {
 	@Test
 	public void testScan() {
 		Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
-		assertEquals(Status.OK, cli.scan(bucket, "user5947069136552588163", 7, null, results));
+		assertEquals(Status.OK, cli().scan(bucket, "user5947069136552588163", 7, null, results));
 	}
 
 	/**
@@ -122,7 +97,7 @@ public class RiakKVClientTest {
         values.put("first_name", "Dave");
         values.put("last_name", "Parfitt");
         values.put("city", "Buffalo, NY");
-		assertEquals(Status.OK, cli.update(bucket, key, StringByteIterator.getByteIteratorMap(values)));
+		assertEquals(Status.OK, cli().update(bucket, key, StringByteIterator.getByteIteratorMap(values)));
 	}
 
 	/**
@@ -130,7 +105,7 @@ public class RiakKVClientTest {
 	 */
 	@Test
 	public void testDelete() {
-        assertEquals(Status.OK, cli.delete(bucket, key));
+        assertEquals(Status.OK, cli().delete(bucket, key));
 	}
 
 }
