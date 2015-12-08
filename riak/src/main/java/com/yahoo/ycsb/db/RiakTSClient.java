@@ -32,22 +32,45 @@ import java.util.*;
  * @author Sergey Galkin <srggal at gmail dot com>
  */
 public class RiakTSClient extends AbstractRiakClient {
+    public RiakTSClient() {
+        System.out.print("\n\n\n RIAK TS Client initialized\n\n\n");
+    }
+
     @Override
     public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
         final Row row = RiakUtils.asTSRow(key, Collections.EMPTY_MAP);
-        final Fetch cmd = new Fetch.Builder(table, row.getCells())
-                .build();
 
-        final QueryResult response;
-        try {
-            response = riakClient.execute(cmd);
-        } catch (Exception e) {
-            logger.error("READ FAILED: UE", e);
-            return Status.ERROR;
+        dumpOperation(row, "READ:TRY");
+
+        QueryResult response = QueryResult.EMPTY;
+        for (int i=0; i<config().readRetryCount()+1; ++i) {
+            final Fetch cmd = new Fetch.Builder(table, row.getCells())
+                    .build();
+
+            try {
+                if (config().isDebug() && i!=0) {
+                    dumpOperation(row, "READ:RE-TRY(%d)", i);
+                }
+                response = riakClient.execute(cmd);
+                if ( !QueryResult.EMPTY.equals(response)){
+                    break;
+                }
+            } catch (Exception e) {
+                logger.error("READ FAILED: UE", e);
+                return Status.ERROR;
+            }
         }
 
-        assert response.getRows().size() == 1;
 
+        if ( QueryResult.EMPTY.equals(response))
+        {
+            dumpOperation(null, "READ:RESULT - NOT FOUND");
+            return Status.NOT_FOUND;
+        }
+
+        dumpOperation(response.getRows().get(0), "READ:RESULT - OK, teh 1st of %d", response.getRows().size());
+
+        assert response.getRows().size() == 1;
         final Vector<HashMap<String, ByteIterator>> v = RiakUtils.asSYCSBResults(response);
         assert v.size() == 1;
 
@@ -58,6 +81,8 @@ public class RiakTSClient extends AbstractRiakClient {
     @Override
     public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(startkey, Collections.EMPTY_MAP);
+
+        dumpOperation(data.getValue(), "SCAN:TRY (%d)", recordcount);
 
         final String host = data.getValue().getCells().get(0).getVarcharAsUTF8String();
         final String worker = data.getValue().getCells().get(1).getVarcharAsUTF8String();
@@ -81,6 +106,14 @@ public class RiakTSClient extends AbstractRiakClient {
             return Status.ERROR;
         }
 
+        if ( QueryResult.EMPTY.equals(response))
+        {
+            dumpOperation(null, "SCAN:RESULT - NOT FOUND");
+            return Status.NOT_FOUND;
+        }
+
+        dumpOperation(response.getRows().get(0), "SCAN:RESULT - OK, the 1st of %d", response.getRows().size());
+
         final Vector<HashMap<String, ByteIterator>> v = RiakUtils.asSYCSBResults(response);
         result.addAll( v );
         return Status.OK;
@@ -94,6 +127,7 @@ public class RiakTSClient extends AbstractRiakClient {
     @Override
     public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
         final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(key, values);
+        dumpOperation(data.getValue(), "UPSERT:TRY");
 
         final Store cmd = new Store.Builder(BinaryValue.create(table))
                 .withRows(Collections.singleton(data.getValue()))
@@ -101,7 +135,9 @@ public class RiakTSClient extends AbstractRiakClient {
 
         try {
             riakClient.execute(cmd);
+            dumpOperation(data.getValue(), "UPSERT:RESULT - OK");
         } catch (Exception e) {
+            dumpOperation(data.getValue(), "UPSERT FAILED");
             logger.error("UPSERT FAILED: UE", e);
             return Status.ERROR;
         }
@@ -113,11 +149,13 @@ public class RiakTSClient extends AbstractRiakClient {
     public Status delete(String table, String key) {
         final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(key, Collections.EMPTY_MAP);
 
+        dumpOperation(data.getValue(), "DELETE:TRY");
         final Delete cmd = new Delete.Builder(table, data.getValue().getCells())
                 .build();
 
         try {
             riakClient.execute(cmd);
+            dumpOperation(data.getValue(), "DELETE:RESULT - OK");
         } catch (Exception e) {
             logger.error("DELETE FAILED: UE", e);
             return Status.ERROR;

@@ -162,7 +162,28 @@ public class RiakTSClientTest extends AbstractRiakClientTest<RiakTSClient> {
 
         assertEquals(Status.OK, cli().scan(theFirst.table, theFirst.key, offset, dataSample.values.keySet(), results));
         assertEquals(offset, results.size());
+    }
 
+    @Test
+    public void returnNOTFOUND_if_readNonexistent() throws Exception {
+        final Row keys = RiakUtils.asTSRow(dataSample.key, Collections.EMPTY_MAP);
+
+        // to be 100% sure that value doesn't exist
+        assertEquals(QueryResult.EMPTY, riakFunctions.awaitWhileAvailable(dataSample.table, keys.getCells(), 3));
+
+        final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
+        assertEquals(Status.NOT_FOUND, cli().read(dataSample.table, dataSample.key, dataSample.values.keySet(), result));
+    }
+
+    @Test
+    public void returnOK_if_deleteNonexistent() throws Exception {
+        final Row keys = RiakUtils.asTSRow(dataSample.key, Collections.EMPTY_MAP);
+
+        // to be 100% sure that value doesn't exist
+        assertEquals(QueryResult.EMPTY, riakFunctions.awaitWhileAvailable(dataSample.table, keys.getCells(), 3));
+
+        final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
+        assertEquals(Status.OK, cli().delete(dataSample.table, dataSample.key));
     }
 
     private QueryResult storeAndWaitAvailability(WorkloadData data) throws Exception {

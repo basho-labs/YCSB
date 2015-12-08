@@ -21,6 +21,7 @@ import com.basho.riak.client.core.RiakCluster;
 import com.basho.riak.client.core.RiakNode;
 import com.basho.riak.client.core.query.Location;
 import com.basho.riak.client.core.query.Namespace;
+import com.basho.riak.client.core.query.timeseries.Row;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import org.slf4j.Logger;
@@ -41,6 +42,7 @@ public abstract class AbstractRiakClient extends DB {
         private static final String R_VALUE_PROPERTY = "riak.r_val";
         private static final String W_VALUE_PROPERTY = "riak.w_val";
         private static final String READ_RETRY_COUNT_PROPERTY = "riak.read_retry_count";
+        private static final String DEBUG_PROPERTY = "riak.debug";
 
         private String bucketType;
         private int defaultPort;
@@ -48,6 +50,7 @@ public abstract class AbstractRiakClient extends DB {
         private int r_value;
         private int w_value;
         private int readRetryCount;
+        private boolean debug;
 
         private Config() {}
 
@@ -78,6 +81,9 @@ public abstract class AbstractRiakClient extends DB {
                     props.getProperty(READ_RETRY_COUNT_PROPERTY, "5")
             );
 
+            cfg.debug = Boolean.parseBoolean(
+                    props.getProperty(DEBUG_PROPERTY, "false")
+            );
             return cfg;
         }
 
@@ -107,6 +113,10 @@ public abstract class AbstractRiakClient extends DB {
 
         public String getBucketType() {
             return bucketType;
+        }
+
+        public boolean isDebug() {
+            return debug;
         }
     }
 
@@ -164,6 +174,13 @@ public abstract class AbstractRiakClient extends DB {
 
         if (config != null) {
             config = null;
+        }
+    }
+
+    protected void dumpOperation(Row row, String operationTemplate, Object... params) {
+        if (config.debug) {
+            final String str = String.format(operationTemplate, params);
+            System.out.println("[" + str + "] " + (row == null ? "" : row.getCells()));
         }
     }
 }

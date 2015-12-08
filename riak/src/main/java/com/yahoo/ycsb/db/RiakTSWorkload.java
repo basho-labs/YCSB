@@ -32,22 +32,40 @@ public class RiakTSWorkload extends CoreWorkload {
      */
     public static final String INITIAL_TS_PROPERTY="initialtimestamp";
 
+    /**
+     * Use generated timestamp instead of using part of Key as a timestamp.
+     *
+     * If 'false' then INITIAL_TS_PROPERTY will be ignored
+     */
+    public static final String USE_OWN_TIMESTAMP="useowntimestamp";
+
     private long timestamp;
+    private boolean useOwnTimestamp;
     private final String host;
 
     public RiakTSWorkload() throws UnknownHostException {
         host = InetAddress.getLocalHost().getHostAddress();
+        System.out.print("\n\n\n RIAK TS Workload initialized\n\n\n");
     }
 
     @Override
     public String buildKeyName(long keynum) {
         final String key = super.buildKeyName(keynum);
-        return String.format("%d,%s,%s,worker-%d", timestamp++, key, host, Thread.currentThread().getId());
+
+        final long ts;
+        if (useOwnTimestamp) {
+            ts = timestamp++;
+        } else {
+            ts = RiakUtils.getKeyAsLong(key);
+        }
+
+        return String.format("%d,%s,%s,worker-%d", ts, key, host, Thread.currentThread().getId());
     }
 
     @Override
     public void init(Properties p) throws WorkloadException {
         super.init(p);
         this.timestamp = Long.parseLong(p.getProperty(INITIAL_TS_PROPERTY, Long.toString(System.currentTimeMillis())));
+        this.useOwnTimestamp = Boolean.parseBoolean(p.getProperty(USE_OWN_TIMESTAMP, "false"));
     }
 }
