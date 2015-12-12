@@ -119,7 +119,6 @@ public abstract class AbstractRiakClient extends DB {
                                 .withRemotePort(this.defaultPort),
                             this.hosts
                         ).build();
-
         }
 
         public String getBucketType() {
