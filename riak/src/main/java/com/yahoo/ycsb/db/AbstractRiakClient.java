@@ -22,6 +22,7 @@ import com.basho.riak.client.core.RiakNode;
 import com.basho.riak.client.core.query.Location;
 import com.basho.riak.client.core.query.Namespace;
 import com.basho.riak.client.core.query.timeseries.Row;
+import com.yahoo.ycsb.Client;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Sergey Galkin <srggal at gmail dot com>
@@ -51,6 +53,7 @@ public abstract class AbstractRiakClient extends DB {
         private int w_value;
         private int readRetryCount;
         private boolean debug;
+        private int threadCount;
 
         private Config() {}
 
@@ -84,6 +87,10 @@ public abstract class AbstractRiakClient extends DB {
             cfg.debug = Boolean.parseBoolean(
                     props.getProperty(DEBUG_PROPERTY, "false")
             );
+
+            cfg.threadCount = Integer.parseInt(
+                            props.getProperty(Client.THREAD_COUNT_PROPERTY, "1")
+                    );
             return cfg;
         }
 
@@ -106,8 +113,12 @@ public abstract class AbstractRiakClient extends DB {
         public RiakCluster createRiakCluster() throws UnknownHostException {
             return new RiakCluster.Builder(
                             new RiakNode.Builder()
-                                .withRemotePort(this.defaultPort), this.hosts)
-                    .build();
+                                    // Update number of connections based on threads
+                                .withMinConnections(threadCount)
+                                .withMaxConnections(threadCount)
+                                .withRemotePort(this.defaultPort),
+                            this.hosts
+                        ).build();
 
         }
 
@@ -120,9 +131,16 @@ public abstract class AbstractRiakClient extends DB {
         }
     }
 
-    private Config config;
+    /**
+     * Count the number of times initialized to teardown on the last
+     * {@link #cleanup()}.
+     */
+    private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
+
+    private static Config config;
+    protected static RiakClient riakClient;
+
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
-    protected RiakClient riakClient;
 
 
     protected Config config() {
@@ -134,53 +152,86 @@ public abstract class AbstractRiakClient extends DB {
     public void init() throws DBException {
         super.init();
 
-        config = Config.create(getProperties());
+        // Keep track of number of calls to init (for later cleanup)
+        INIT_COUNT.incrementAndGet();
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Configuration is:\n" +
-                        "\tHosts:        {}\n" +
-                        "\tDefault Port: {}\n" +
-                        "\tBucket type:  {}\n" +
-                        "\tR Val:        {}\n" +
-                        "\tW Val:        {}\n" +
-                        "\tRead Retry Count: {}",
-                    new Object[] {
-                        config.hosts,
-                        config.defaultPort,
-                        config.bucketType,
-                        config.r_value,
-                        config.w_value,
-                        config.readRetryCount
-                    }
+        // Synchronized so that we only have a single
+        // cluster/session instance for all the threads.
+        synchronized (INIT_COUNT) {
+
+            if (config != null) {
+                assert riakClient != null;
+                return;
+            }
+
+            config = Config.create(getProperties());
+
+            try {
+                final RiakCluster riakCluster = config.createRiakCluster();
+                riakCluster.start();
+
+                riakClient = new RiakClient(riakCluster);
+            } catch (UnknownHostException e) {
+                throw new DBException("Can't create Riak Cluster", e);
+            }
+
+            debugPrint("\n\n%s client has been initialized with the following configuration:\n" +
+                            "\tHosts:        %s\n" +
+                            "\tDefault Port: %d\n" +
+                            "\tBucket type:  %s\n" +
+                            "\tThread cnt:   %d\n" +
+                            "\tR Val:        %d\n" +
+                            "\tW Val:        %d\n" +
+                            "\tRead Retry Count: %d\n\n",
+                    this.getClass().getSimpleName(),
+                    config.hosts,
+                    config.defaultPort,
+                    config.bucketType,
+                    config.threadCount,
+                    config.r_value,
+                    config.w_value,
+                    config.readRetryCount
             );
-        }
-
-        try {
-            final RiakCluster riakCluster = config.createRiakCluster();
-            riakCluster.start();
-
-            riakClient = new RiakClient(riakCluster);
-        } catch (UnknownHostException e) {
-            throw new DBException("Can't create Riak Cluster", e);
         }
     }
 
     @Override
     public void cleanup() throws DBException
     {
-        if (riakClient != null) {
-            riakClient.shutdown();
-        }
+        synchronized (INIT_COUNT) {
+            final int curInitCount = INIT_COUNT.decrementAndGet();
+            if (curInitCount <= 0) {
+                if (riakClient != null) {
+                    riakClient.shutdown();
+                }
 
-        if (config != null) {
-            config = null;
+                if (config != null) {
+                    config = null;
+                }
+            }
+
+            if (curInitCount < 0) {
+                // This should never happen.
+                throw new DBException(
+                        String.format("initCount is negative: %d", curInitCount));
+            }
+        }
+    }
+
+    protected void debugPrint(String str, Object... params) {
+        if (config.debug) {
+            if (params.length == 0) {
+                System.out.println(str);
+            } else {
+                System.out.println("[tid:" + Thread.currentThread().getId() + "] " + String.format(str, params));
+            }
         }
     }
 
     protected void dumpOperation(Row row, String operationTemplate, Object... params) {
         if (config.debug) {
             final String str = String.format(operationTemplate, params);
-            System.out.println("[" + str + "] " + (row == null ? "" : row.getCellsCopy()));
+            System.out.println("[tid:" + Thread.currentThread().getId() +", " + str + "] " + (row == null ? "" : row.getCellsCopy()));
         }
     }
 }

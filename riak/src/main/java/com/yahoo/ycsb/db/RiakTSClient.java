@@ -32,10 +32,6 @@ import java.util.*;
  * @author Sergey Galkin <srggal at gmail dot com>
  */
 public class RiakTSClient extends AbstractRiakClient {
-    public RiakTSClient() {
-        System.out.print("\n\n\n RIAK TS Client initialized\n\n\n");
-    }
-
     @Override
     public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
         final Row row = RiakUtils.asTSRow(key, Collections.EMPTY_MAP);
@@ -56,7 +52,8 @@ public class RiakTSClient extends AbstractRiakClient {
                     break;
                 }
             } catch (Exception e) {
-                logger.error("READ FAILED: UE", e);
+                dumpOperation(row, "READ:FAILED");
+                e.printStackTrace();
                 return Status.ERROR;
             }
         }
@@ -64,7 +61,7 @@ public class RiakTSClient extends AbstractRiakClient {
 
         if ( QueryResult.EMPTY.equals(response))
         {
-            dumpOperation(null, "READ:RESULT - NOT FOUND");
+            dumpOperation(row, "READ:RESULT - NOT FOUND");
             return Status.NOT_FOUND;
         }
 
@@ -104,13 +101,14 @@ public class RiakTSClient extends AbstractRiakClient {
         try {
             response = riakClient.execute(cmd);
         } catch (Exception e) {
-            logger.error("SCAN FAILED: UE", e);
+            dumpOperation(data.getValue(), "SCAN:FAILED");
+            e.printStackTrace();
             return Status.ERROR;
         }
 
         if ( QueryResult.EMPTY.equals(response))
         {
-            dumpOperation(null, "SCAN:RESULT - NOT FOUND");
+            dumpOperation(data.getValue(), "SCAN:RESULT - NOT FOUND");
             return Status.NOT_FOUND;
         }
 
@@ -140,7 +138,7 @@ public class RiakTSClient extends AbstractRiakClient {
             dumpOperation(data.getValue(), "UPSERT:RESULT - OK");
         } catch (Exception e) {
             dumpOperation(data.getValue(), "UPSERT FAILED");
-            logger.error("UPSERT FAILED: UE", e);
+            e.printStackTrace();
             return Status.ERROR;
         }
 
@@ -159,7 +157,8 @@ public class RiakTSClient extends AbstractRiakClient {
             riakClient.execute(cmd);
             dumpOperation(data.getValue(), "DELETE:RESULT - OK");
         } catch (Exception e) {
-            logger.error("DELETE FAILED: UE", e);
+            dumpOperation(data.getValue(), "DELETE:FAILED");
+            e.printStackTrace();
             return Status.ERROR;
         }
 

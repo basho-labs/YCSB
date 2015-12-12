@@ -45,7 +45,6 @@ public class RiakTSWorkload extends CoreWorkload {
 
     public RiakTSWorkload() throws UnknownHostException {
         host = InetAddress.getLocalHost().getHostAddress();
-        System.out.print("\n\n\n RIAK TS Workload initialized\n\n\n");
     }
 
     @Override

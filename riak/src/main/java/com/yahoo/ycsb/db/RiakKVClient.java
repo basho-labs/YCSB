@@ -40,10 +40,6 @@ import static com.yahoo.ycsb.db.RiakUtils.*;
  * @author Sergey Galkin <srggal at gmail dot com>
  */
 public final class RiakKVClient extends AbstractRiakClient {
-	public RiakKVClient() {
-		System.out.print("\n\n\n RIAK KV Client initialized\n\n\n");
-	}
-
 	/**
 	 * Read a record from the database. Each field/value pair from the result will be stored in a HashMap.
 	 *
