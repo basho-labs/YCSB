@@ -105,7 +105,7 @@ public abstract class AbstractRiakClient extends DB {
 
         public RiakCluster createRiakCluster() throws UnknownHostException {
             return new RiakCluster.Builder(
-                            RiakNode.Builder.create()
+                            new RiakNode.Builder()
                                 .withRemotePort(this.defaultPort), this.hosts)
                     .build();
 
@@ -180,7 +180,7 @@ public abstract class AbstractRiakClient extends DB {
     protected void dumpOperation(Row row, String operationTemplate, Object... params) {
         if (config.debug) {
             final String str = String.format(operationTemplate, params);
-            System.out.println("[" + str + "] " + (row == null ? "" : row.getCells()));
+            System.out.println("[" + str + "] " + (row == null ? "" : row.getCellsCopy()));
         }
     }
 }

@@ -96,7 +96,7 @@ public class RiakTSClientTest extends AbstractRiakClientTest<RiakTSClient> {
         assertEquals(Status.OK, result);
 
         final Row keys = RiakUtils.asTSRow(dataSample.key, Collections.EMPTY_MAP);
-        final QueryResult r = riakFunctions.awaitWhileAvailable(dataSample.table, keys.getCells(), 3);
+        final QueryResult r = riakFunctions.awaitWhileAvailable(dataSample.table, keys, 3);
         assertEquals(QueryResult.EMPTY, r);
     }
 
@@ -121,21 +121,10 @@ public class RiakTSClientTest extends AbstractRiakClientTest<RiakTSClient> {
 
         final Row keys = RiakUtils.asTSRow(dataSample.key, Collections.EMPTY_MAP);
         for (;;){
-            final QueryResult r = riakFunctions.awaitWhileAvailable(dataSample.table, keys.getCells(), 3);
-            assertEquals(1, r.getRows().size());
+            final QueryResult r = riakFunctions.awaitWhileAvailable(dataSample.table, keys, 3);
+            assertEquals(1, r.getRowsCount());
 
-            int idx = -1;
-            for (int i=0; i<r.getColumnDescriptions().size(); ++i){
-                if (r.getColumnDescriptions().get(i).getName().equals(changedField)){
-                    idx = i;
-                    break;
-                }
-            }
-            if (idx < 0){
-                throw new IllegalStateException(String.format("Changed field '%s' wasn't been returned", changedField));
-            }
-
-            final Cell c = r.getRows().get(0).getCells().get(idx);
+            final Cell c = cellByColumnName(changedField, r.getColumnDescriptionsCopy(), r.iterator().next());
             if (newValue.equals(c.getVarcharAsUTF8String())){
                 break;
             }
@@ -169,7 +158,7 @@ public class RiakTSClientTest extends AbstractRiakClientTest<RiakTSClient> {
         final Row keys = RiakUtils.asTSRow(dataSample.key, Collections.EMPTY_MAP);
 
         // to be 100% sure that value doesn't exist
-        assertEquals(QueryResult.EMPTY, riakFunctions.awaitWhileAvailable(dataSample.table, keys.getCells(), 3));
+        assertEquals(QueryResult.EMPTY, riakFunctions.awaitWhileAvailable(dataSample.table, keys, 3));
 
         final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
         assertEquals(Status.NOT_FOUND, cli().read(dataSample.table, dataSample.key, dataSample.values.keySet(), result));
@@ -180,9 +169,8 @@ public class RiakTSClientTest extends AbstractRiakClientTest<RiakTSClient> {
         final Row keys = RiakUtils.asTSRow(dataSample.key, Collections.EMPTY_MAP);
 
         // to be 100% sure that value doesn't exist
-        assertEquals(QueryResult.EMPTY, riakFunctions.awaitWhileAvailable(dataSample.table, keys.getCells(), 3));
+        assertEquals(QueryResult.EMPTY, riakFunctions.awaitWhileAvailable(dataSample.table, keys, 3));
 
-        final HashMap<String, ByteIterator> result = new HashMap<String, ByteIterator>();
         assertEquals(Status.OK, cli().delete(dataSample.table, dataSample.key));
     }
 
@@ -191,6 +179,21 @@ public class RiakTSClientTest extends AbstractRiakClientTest<RiakTSClient> {
         assertEquals(Status.OK, status);
 
         final Row keys = RiakUtils.asTSRow(data.key, Collections.EMPTY_MAP);
-        return riakFunctions.awaitWhileAvailable(data.table, keys.getCells());
+        return riakFunctions.awaitWhileAvailable(data.table, keys);
+    }
+
+    private static Cell cellByColumnName(String column, List<ColumnDescription> columns,  Row r) {
+        int idx = -1;
+        for (int i=0; i<columns.size(); ++i){
+            if (columns.get(i).getName().equals(column)){
+                idx = i;
+                break;
+            }
+        }
+        if (idx < 0){
+            throw new IllegalStateException(String.format("Changed field '%s' wasn't been returned", column));
+        }
+
+        return RiakUtils.advance(r.iterator(),idx).next();
     }
 }

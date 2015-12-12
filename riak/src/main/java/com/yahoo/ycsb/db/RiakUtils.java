@@ -214,16 +214,17 @@ final class RiakUtils {
     }
 
     static Vector<HashMap<String, ByteIterator>> asSYCSBResults(QueryResult queryResult) {
-        final Vector<HashMap<String, ByteIterator>> result = new Vector<HashMap<String, com.yahoo.ycsb.ByteIterator>>(queryResult.getRows().size());
+        final Vector<HashMap<String, ByteIterator>> result = new Vector<HashMap<String, com.yahoo.ycsb.ByteIterator>>(queryResult.getRowsCount());
 
-        final int columnsInTotal = queryResult.getColumnDescriptions().size();
+        final List<ColumnDescription> columns = queryResult.getColumnDescriptionsCopy();
+        final int columnsInTotal = columns.size();
         final int columnCount = columnsInTotal - TS_NUMBER_OF_INTERNAL_COLUMNS;
-        final List<ColumnDescription> columns = queryResult.getColumnDescriptions();
 
-        for (Row row: queryResult.getRows()){
+        for (Row row: queryResult){
             final HashMap<String, ByteIterator> m = new HashMap<String, ByteIterator>(columnCount);
+            final Iterator<Cell> iterator = advance(row.iterator(), TS_NUMBER_OF_INTERNAL_COLUMNS);
             for (int i=TS_NUMBER_OF_INTERNAL_COLUMNS; i<columnsInTotal; ++i ){
-                final Cell c = row.getCells().get(i);
+                final Cell c = iterator.next();
                 m.put(columns.get(i).getName(), new ByteArrayByteIterator(c.getVarcharValue().unsafeGetValue()));
             }
 
@@ -232,4 +233,10 @@ final class RiakUtils {
         return result;
     }
 
+    public static <T> Iterator<T> advance(Iterator<T> iterator, int distance) {
+        for (int i=0; i<distance; ++i){
+            iterator.next();
+        }
+        return iterator;
+    }
 }

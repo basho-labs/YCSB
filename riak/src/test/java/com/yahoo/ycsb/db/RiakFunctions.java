@@ -140,15 +140,15 @@ public final class RiakFunctions implements Closeable {
         }
     }
 
-    public QueryResult awaitWhileAvailable( String table, List<Cell> pkeys) throws Exception {
-        return awaitWhileAvailable(table, pkeys, 0);
+    public QueryResult awaitWhileAvailable( String table, Iterable<Cell> keys) throws Exception {
+        return awaitWhileAvailable(table, keys, 0);
     }
 
-    public QueryResult awaitWhileAvailable( String table, List<Cell> pkeys, int retries) throws Exception {
+    public QueryResult awaitWhileAvailable( String table, Iterable<Cell> keys, int retries) throws Exception {
         QueryResult response = null;
         for (int i=0; i<retries || retries == 0; ++i) {
             final com.basho.riak.client.core.operations.ts.FetchOperation op =
-                    new com.basho.riak.client.core.operations.ts.FetchOperation.Builder(BinaryValue.create(table), pkeys)
+                    new com.basho.riak.client.core.operations.ts.FetchOperation.Builder(table, keys)
                             .withTimeout(100)
                             .build();
 

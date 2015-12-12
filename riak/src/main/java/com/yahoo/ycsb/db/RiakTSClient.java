@@ -19,10 +19,10 @@ import com.basho.riak.client.api.commands.timeseries.Delete;
 import com.basho.riak.client.api.commands.timeseries.Fetch;
 import com.basho.riak.client.api.commands.timeseries.Query;
 import com.basho.riak.client.api.commands.timeseries.Store;
+import com.basho.riak.client.core.query.timeseries.Cell;
 import com.basho.riak.client.core.query.timeseries.ColumnDescription;
 import com.basho.riak.client.core.query.timeseries.QueryResult;
 import com.basho.riak.client.core.query.timeseries.Row;
-import com.basho.riak.client.core.util.BinaryValue;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.Status;
 
@@ -44,7 +44,7 @@ public class RiakTSClient extends AbstractRiakClient {
 
         QueryResult response = QueryResult.EMPTY;
         for (int i=0; i<config().readRetryCount()+1; ++i) {
-            final Fetch cmd = new Fetch.Builder(table, row.getCells())
+            final Fetch cmd = new Fetch.Builder(table, row)
                     .build();
 
             try {
@@ -68,9 +68,9 @@ public class RiakTSClient extends AbstractRiakClient {
             return Status.NOT_FOUND;
         }
 
-        dumpOperation(response.getRows().get(0), "READ:RESULT - OK, teh 1st of %d", response.getRows().size());
+        dumpOperation(response.iterator().next(), "READ:RESULT - OK, teh 1st of %d", response.getRowsCount());
 
-        assert response.getRows().size() == 1;
+        assert response.getRowsCount() == 1;
         final Vector<HashMap<String, ByteIterator>> v = RiakUtils.asSYCSBResults(response);
         assert v.size() == 1;
 
@@ -84,9 +84,11 @@ public class RiakTSClient extends AbstractRiakClient {
 
         dumpOperation(data.getValue(), "SCAN:TRY (%d)", recordcount);
 
-        final String host = data.getValue().getCells().get(0).getVarcharAsUTF8String();
-        final String worker = data.getValue().getCells().get(1).getVarcharAsUTF8String();
-        final long startTime = data.getValue().getCells().get(2).getTimestamp();
+        final Iterator<Cell> iterator = data.getValue().iterator();
+
+        final String host = iterator.next().getVarcharAsUTF8String();
+        final String worker = iterator.next().getVarcharAsUTF8String();
+        final long startTime = iterator.next().getTimestamp();
 
         final String query = String.format("SELECT * FROM %s " +
                 " WHERE " +
@@ -112,7 +114,7 @@ public class RiakTSClient extends AbstractRiakClient {
             return Status.NOT_FOUND;
         }
 
-        dumpOperation(response.getRows().get(0), "SCAN:RESULT - OK, the 1st of %d", response.getRows().size());
+        dumpOperation(response.iterator().next(), "SCAN:RESULT - OK, the 1st of %d", response.getRowsCount());
 
         final Vector<HashMap<String, ByteIterator>> v = RiakUtils.asSYCSBResults(response);
         result.addAll( v );
@@ -129,7 +131,7 @@ public class RiakTSClient extends AbstractRiakClient {
         final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(key, values);
         dumpOperation(data.getValue(), "UPSERT:TRY");
 
-        final Store cmd = new Store.Builder(BinaryValue.create(table))
+        final Store cmd = new Store.Builder(table)
                 .withRows(Collections.singleton(data.getValue()))
                 .build();
 
@@ -150,7 +152,7 @@ public class RiakTSClient extends AbstractRiakClient {
         final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(key, Collections.EMPTY_MAP);
 
         dumpOperation(data.getValue(), "DELETE:TRY");
-        final Delete cmd = new Delete.Builder(table, data.getValue().getCells())
+        final Delete cmd = new Delete.Builder(table, data.getValue())
                 .build();
 
         try {
