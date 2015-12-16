@@ -164,12 +164,21 @@ final class RiakUtils {
     	return Long.parseLong( key_string );
 	}
 
-    static final int TS_NUMBER_OF_INTERNAL_COLUMNS = 4;
+    /**
+     * Boolean flag that indicates whether original key should be stored into TS or not.
+     * Having original key stores into TS is no required for YCS.
+     * Moreover it is cause performance degradation during the test
+     * (for each record this additional field should be processed).
+     * That is why this option is turned off by default.
+     */
+    static boolean STORE_ORIGINAL_KEY = false;
+
+    static final int TS_NUMBER_OF_INTERNAL_COLUMNS = 3 + (STORE_ORIGINAL_KEY ? 1 : 0);
 
     static Row asTSRow(String key, Map<String, ByteIterator> values) {
         final String parts[] = key.split(",");
 
-        if (parts.length != TS_NUMBER_OF_INTERNAL_COLUMNS){
+        if (parts.length != TS_NUMBER_OF_INTERNAL_COLUMNS + (STORE_ORIGINAL_KEY ? 0 : 1)){
             throw new IllegalStateException("Wrong Key format, expected key with timestamp, original key, host and workerId");
         }
 
@@ -187,7 +196,9 @@ final class RiakUtils {
 
 
         if (!values.isEmpty()){
-            cells.add(new Cell(originalKey));
+            if (STORE_ORIGINAL_KEY) {
+                cells.add(new Cell(originalKey));
+            }
 
             final Iterator<Map.Entry<String, ByteIterator>> iterator = values.entrySet().iterator();
             for (int i=TS_NUMBER_OF_INTERNAL_COLUMNS; i<cellCount; ++i) {
@@ -204,7 +215,10 @@ final class RiakUtils {
         columns.add(new ColumnDescription("host", ColumnDescription.ColumnType.VARCHAR));
         columns.add(new ColumnDescription("worker", ColumnDescription.ColumnType.VARCHAR));
         columns.add(new ColumnDescription("time", ColumnDescription.ColumnType.TIMESTAMP));
-        columns.add(new ColumnDescription("okey", ColumnDescription.ColumnType.VARCHAR));
+
+        if (STORE_ORIGINAL_KEY) {
+            columns.add(new ColumnDescription("okey", ColumnDescription.ColumnType.VARCHAR));
+        }
 
         for (String k: values.keySet()){
             columns.add(new ColumnDescription(k, ColumnDescription.ColumnType.VARCHAR));
