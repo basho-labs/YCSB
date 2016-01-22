@@ -25,9 +25,12 @@ import com.basho.riak.client.core.query.timeseries.Row;
 import com.yahoo.ycsb.Client;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -218,19 +221,49 @@ public abstract class AbstractRiakClient extends DB {
     }
 
     protected void debugPrint(String str, Object... params) {
-        if (config.debug) {
-            if (params.length == 0) {
-                System.out.println(str);
+        if (config.debug || logger.isDebugEnabled()) {
+            final String msg = params.length == 0 ? str : String.format(str, params);
+            if (logger.isDebugEnabled()) {
+                logger.debug(msg);
             } else {
-                System.out.println("[tid:" + Thread.currentThread().getId() + "] " + String.format(str, params));
+                System.out.println("[tid:" + Thread.currentThread().getId() + "] " + msg);
             }
         }
     }
 
+    protected void dumpOperationException(Throwable t, Row row, String operationTemplate, Object... params) {
+        final StringWriter sw = new StringWriter();
+        new PrintWriter(sw)
+            .append('[')
+            .format(operationTemplate, params)
+            .append(row == null ? "" : row.getCellsCopy().toString())
+            .append("\n\n")
+            .append(ExceptionUtils.getFullStackTrace(t));
+
+        final String msg = sw.toString();
+
+        if (logger.isErrorEnabled()) {
+            logger.error(msg);
+        } else {
+            System.out.println(msg);
+        }
+    }
+
     protected void dumpOperation(Row row, String operationTemplate, Object... params) {
-        if (config.debug) {
-            final String str = String.format(operationTemplate, params);
-            System.out.println("[tid:" + Thread.currentThread().getId() +", " + str + "] " + (row == null ? "" : row.getCellsCopy()));
+        if (config.debug || logger.isTraceEnabled()) {
+            final StringWriter sw = new StringWriter();
+            new PrintWriter(sw)
+                .append('[')
+                .format(operationTemplate, params)
+                .append(row == null ? "" : row.getCellsCopy().toString());
+
+            final String msg = sw.toString();
+
+            if (logger.isTraceEnabled()) {
+                logger.trace(msg);
+            } else {
+                System.out.println(msg);
+            }
         }
     }
 }

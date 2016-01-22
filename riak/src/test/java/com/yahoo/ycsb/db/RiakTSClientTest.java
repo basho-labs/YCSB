@@ -36,7 +36,7 @@ import static org.junit.Assert.assertEquals;
  */
 @FixMethodOrder(MethodSorters.JVM)
 public class RiakTSClientTest extends AbstractRiakClientTest<RiakTSClient> {
-
+    private static final Boolean useTTB = false;
     public RiakTSClientTest() {
         super(RiakTSClient.class, RiakTSWorkload.class);
     }
@@ -44,7 +44,11 @@ public class RiakTSClientTest extends AbstractRiakClientTest<RiakTSClient> {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        checkTsBucketExistence();
+
+        if (!useTTB) {
+            // TTB'ed GET bucket props is not supported in the moment
+            checkTsBucketExistence();
+        }
     }
 
     private void checkTsBucketExistence() throws ExecutionException, InterruptedException {

@@ -6,7 +6,9 @@
         </encoder>
     </appender>
 
-    <root level="debug">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT" />
     </root>
+
+    <logger name="com.yahoo.ycsb.db" level="TRACE" />
 </configuration>

@@ -52,8 +52,7 @@ public class RiakTSClient extends AbstractRiakClient {
                     break;
                 }
             } catch (Exception e) {
-                dumpOperation(row, "READ:FAILED");
-                e.printStackTrace();
+                dumpOperationException(e, row, "READ:FAILED");
                 return Status.ERROR;
             }
         }
@@ -101,8 +100,7 @@ public class RiakTSClient extends AbstractRiakClient {
         try {
             response = riakClient.execute(cmd);
         } catch (Exception e) {
-            dumpOperation(data.getValue(), "SCAN:FAILED");
-            e.printStackTrace();
+            dumpOperationException(e, data.getValue(), "SCAN:FAILED");
             return Status.ERROR;
         }
 
@@ -137,8 +135,7 @@ public class RiakTSClient extends AbstractRiakClient {
             riakClient.execute(cmd);
             dumpOperation(data.getValue(), "UPSERT:RESULT - OK");
         } catch (Exception e) {
-            dumpOperation(data.getValue(), "UPSERT FAILED");
-            e.printStackTrace();
+            dumpOperationException(e, data.getValue(), "UPSERT FAILED");
             return Status.ERROR;
         }
 
@@ -157,8 +154,7 @@ public class RiakTSClient extends AbstractRiakClient {
             riakClient.execute(cmd);
             dumpOperation(data.getValue(), "DELETE:RESULT - OK");
         } catch (Exception e) {
-            dumpOperation(data.getValue(), "DELETE:FAILED");
-            e.printStackTrace();
+            dumpOperationException(e, data.getValue(), "DELETE:FAILED");
             return Status.ERROR;
         }
 
