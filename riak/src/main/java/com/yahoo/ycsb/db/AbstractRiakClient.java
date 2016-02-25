@@ -48,6 +48,7 @@ public abstract class AbstractRiakClient extends DB {
         private static final String W_VALUE_PROPERTY = "riak.w_val";
         private static final String READ_RETRY_COUNT_PROPERTY = "riak.read_retry_count";
         private static final String DEBUG_PROPERTY = "riak.debug";
+        private static final String SCAN_SIZE_PROPERTY="riak.scan_size";
 
         private String bucketType;
         private int defaultPort;
@@ -57,6 +58,7 @@ public abstract class AbstractRiakClient extends DB {
         private int readRetryCount;
         private boolean debug;
         private int threadCount;
+        private int scan_size;
 
         private Config() {}
 
@@ -93,7 +95,10 @@ public abstract class AbstractRiakClient extends DB {
 
             cfg.threadCount = Integer.parseInt(
                             props.getProperty(Client.THREAD_COUNT_PROPERTY, "1")
-                    );
+            );
+
+            cfg.scan_size = Integer.parseInt(props.getProperty(SCAN_SIZE_PROPERTY, "-1"));
+
             return cfg;
         }
 
@@ -130,6 +135,10 @@ public abstract class AbstractRiakClient extends DB {
 
         public boolean isDebug() {
             return debug;
+        }
+
+        public int scanSize() {
+            return scan_size;
         }
     }
 

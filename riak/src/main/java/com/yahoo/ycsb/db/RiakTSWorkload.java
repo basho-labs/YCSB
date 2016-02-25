@@ -20,6 +20,7 @@ import com.yahoo.ycsb.workloads.CoreWorkload;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.Properties;
 
 /**
@@ -38,11 +39,12 @@ public class RiakTSWorkload extends CoreWorkload {
      * If 'false' then INITIAL_TS_PROPERTY will be ignored
      */
     public static final String USE_OWN_TIMESTAMP="useowntimestamp";
-
+    
     private long timestamp;
     private boolean useOwnTimestamp;
     private final String host;
-
+    private HashMap<String, Long> timestampMap;
+    
     public RiakTSWorkload() throws UnknownHostException {
         host = InetAddress.getLocalHost().getHostAddress();
     }
@@ -50,15 +52,24 @@ public class RiakTSWorkload extends CoreWorkload {
     @Override
     public String buildKeyName(long keynum) {
         final String key = super.buildKeyName(keynum);
+        String workerId = String.format("worker-%d", Thread.currentThread().getId());
 
         final long ts;
         if (useOwnTimestamp) {
-            ts = timestamp++;
+        	if (timestampMap.containsKey(workerId))
+        	{
+        		ts = (Long) timestampMap.get(workerId) + 1;
+        		timestampMap.put(workerId, ts);
+        	} else
+        	{
+        		ts = this.timestamp;
+        		this.timestampMap.put(workerId, ts);
+        	}
         } else {
             ts = RiakUtils.getKeyAsLong(key);
         }
 
-        return String.format("%d,%s,%s,worker-%d", ts, key, host, Thread.currentThread().getId());
+        return String.format("%d,%s,%s,%s", ts, key, host, workerId);
     }
 
     @Override
@@ -66,5 +77,6 @@ public class RiakTSWorkload extends CoreWorkload {
         super.init(p);
         this.timestamp = Long.parseLong(p.getProperty(INITIAL_TS_PROPERTY, Long.toString(System.currentTimeMillis())));
         this.useOwnTimestamp = Boolean.parseBoolean(p.getProperty(USE_OWN_TIMESTAMP, "false"));
+        this.timestampMap = new HashMap<String, Long>();
     }
 }

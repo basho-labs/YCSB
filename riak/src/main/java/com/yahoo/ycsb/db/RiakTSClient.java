@@ -34,6 +34,7 @@ import java.util.*;
 public class RiakTSClient extends AbstractRiakClient {
     @Override
     public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+
         final Row row = RiakUtils.asTSRow(key, Collections.EMPTY_MAP);
 
         dumpOperation(row, "READ:TRY");
@@ -78,7 +79,12 @@ public class RiakTSClient extends AbstractRiakClient {
     public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(startkey, Collections.EMPTY_MAP);
 
-        dumpOperation(data.getValue(), "SCAN:TRY (%d)", recordcount);
+        int scanSize = recordcount;
+        if (config().scanSize() > 0) {
+            scanSize = config().scanSize();
+        }
+
+        dumpOperation(data.getValue(), "SCAN:TRY (%d)", scanSize);
 
         final Iterator<Cell> iterator = data.getValue().iterator();
 
@@ -91,7 +97,7 @@ public class RiakTSClient extends AbstractRiakClient {
                     " host = '%s' " +
                     " AND worker = '%s' " +
                     " AND time >= %d AND time < %d",
-                    table, host, worker, startTime, startTime + recordcount
+                    table, host, worker, startTime, startTime + scanSize
                 );
 
         final Query cmd = new Query.Builder(query).build();
@@ -125,7 +131,7 @@ public class RiakTSClient extends AbstractRiakClient {
     @Override
     public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
         final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(key, values);
-        dumpOperation(data.getValue(), "UPSERT:TRY");
+        //dumpOperation(data.getValue(), "UPSERT:TRY");
 
         final Store cmd = new Store.Builder(table)
                 .withRows(Collections.singleton(data.getValue()))
