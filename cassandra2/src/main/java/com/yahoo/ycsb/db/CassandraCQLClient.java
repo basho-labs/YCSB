@@ -56,6 +56,8 @@ public class CassandraCQLClient extends DB {
   private static Cluster cluster = null;
   private static Session session = null;
 
+  private int scanSize = -1;
+  
   private static ConsistencyLevel readConsistencyLevel = ConsistencyLevel.ONE;
   private static ConsistencyLevel writeConsistencyLevel = ConsistencyLevel.ONE;
 
@@ -74,6 +76,8 @@ public class CassandraCQLClient extends DB {
   public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY =
       "cassandra.writeconsistencylevel";
   public static final String WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT = "ONE";
+
+  public static final String SCAN_SIZE_PROPERTY = "cassandra.scan_size";
 
   /**
    * Count the number of times initialized to teardown on the last
@@ -133,7 +137,11 @@ public class CassandraCQLClient extends DB {
         writeConsistencyLevel = ConsistencyLevel.valueOf(
             getProperties().getProperty(WRITE_CONSISTENCY_LEVEL_PROPERTY,
                 WRITE_CONSISTENCY_LEVEL_PROPERTY_DEFAULT));
-
+        
+        String sscanSize = 
+            getProperties().getProperty(SCAN_SIZE_PROPERTY, "-1");
+        scanSize = Integer.parseInt(sscanSize);
+        
         // public void connect(String node) {}
         if ((username != null) && !username.isEmpty()) {
           cluster = Cluster.builder().withCredentials(username, password)
@@ -302,6 +310,13 @@ public class CassandraCQLClient extends DB {
 
       stmt = selectBuilder.from(table);
 
+      int limitCount = -1;
+      if (scanSize == -1) {
+        limitCount = recordcount;
+      } else {
+        limitCount = scanSize;
+      }
+      
       // The statement builder is not setup right for tokens.
       // So, we need to build it manually.
       String initialStmt = stmt.toString();
@@ -314,7 +329,7 @@ public class CassandraCQLClient extends DB {
       scanStmt.append(startkey);
       scanStmt.append("')");
       scanStmt.append(" LIMIT ");
-      scanStmt.append(recordcount);
+      scanStmt.append(limitCount);
 
       stmt = new SimpleStatement(scanStmt.toString());
       stmt.setConsistencyLevel(readConsistencyLevel);

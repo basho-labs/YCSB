@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Basho Technologies, Inc.
+ * Copyright 2015 Basho Technologies, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,39 +21,50 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.ExecutionException;
 
 import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
-import com.yahoo.ycsb.db.RiakDBClient;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import com.yahoo.ycsb.workloads.CoreWorkload;
+import org.junit.*;
+import org.junit.runners.MethodSorters;
 
 /**
- * @author Basho Technologies, Inc.
+ * @author Brian McClain <bmcclain at basho dot com>
+ * @author Sergey Galkin <srggal at gmail dot com>
  */
-public class RiakDBClientTest {
-	RiakDBClient cli;
-	String bucket = "people";
-    String key = "person1";
-	
-	/**
+@FixMethodOrder(MethodSorters.JVM)
+public class RiakKVClientTest extends AbstractRiakClientTest<RiakKVClient>{
+    private String key = "42";
+
+    public RiakKVClientTest() {
+        super(RiakKVClient.class, CoreWorkload.class);
+    }
+
+    /**
 	 * @throws java.lang.Exception
 	 */
 	@Before
 	public void setUp() throws Exception {
-		cli = new RiakDBClient();
-		cli.init();
+        super.setUp();
+        riakFunctions.resetAndEmptyBucket(cli().config().mkNamespaceFor(bucket));
 	}
 
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@After
-	public void tearDown() throws Exception {
-		cli.cleanup();
-	}
+    /**
+     * Test method for RiakDBClient.insert(java.lang.String, java.lang.String, java.util.HashMap)
+     */
+    @Test
+    public void testInsert() throws ExecutionException, InterruptedException {
+        HashMap<String, String> values = new HashMap<String, String>();
+        values.put("first_name", "Dave");
+        values.put("last_name", "Parfitt");
+        values.put("city", "Buffalo, NY");
+        assertEquals(Status.OK, cli().insert(bucket, key, StringByteIterator.getByteIteratorMap(values)));
+
+        riakFunctions.awaitWhileAvailable( cli().config().mkLocationFor(bucket, key));
+    }
 
 	/**
 	 * Test method for RiakDBClient.read(java.lang.String, java.lang.String, java.util.Set, java.util.HashMap)
@@ -65,8 +76,7 @@ public class RiakDBClientTest {
         fields.add("last_name");
         fields.add("city");
         HashMap<String, ByteIterator> results = new HashMap<String, ByteIterator>();
-        // .read returns 0 on success, 1 on failure
-        assertEquals(0, cli.read(bucket, key, fields, results));
+        assertEquals(Status.OK, cli().read(bucket, key, fields, results));
 	}
 
 	/**
@@ -75,8 +85,7 @@ public class RiakDBClientTest {
 	@Test
 	public void testScan() {
 		Vector<HashMap<String, ByteIterator>> results = new Vector<HashMap<String, ByteIterator>>();
-		// .scan returns 0 on success, 1 on failure
-		assertEquals(0, cli.scan("usertable", "user5947069136552588163", 7, null, results));
+		assertEquals(Status.OK, cli().scan(bucket, "user5947069136552588163", 7, null, results));
 	}
 
 	/**
@@ -88,21 +97,7 @@ public class RiakDBClientTest {
         values.put("first_name", "Dave");
         values.put("last_name", "Parfitt");
         values.put("city", "Buffalo, NY");
-        // .update returns 0 on success, 1 on failure
-		assertEquals(0, cli.update(bucket, key, StringByteIterator.getByteIteratorMap(values)));
-	}
-
-	/**
-	 * Test method for RiakDBClient.insert(java.lang.String, java.lang.String, java.util.HashMap)
-	 */
-	@Test
-	public void testInsert() {
-		HashMap<String, String> values = new HashMap<String, String>();
-        values.put("first_name", "Dave");
-        values.put("last_name", "Parfitt");
-        values.put("city", "Buffalo, NY");
-        // .insert returns 0 on success, 1 on failure
-		assertEquals(0, cli.insert(bucket, key, StringByteIterator.getByteIteratorMap(values)));
+		assertEquals(Status.OK, cli().update(bucket, key, StringByteIterator.getByteIteratorMap(values)));
 	}
 
 	/**
@@ -110,8 +105,7 @@ public class RiakDBClientTest {
 	 */
 	@Test
 	public void testDelete() {
-        // .delete returns 0 on success, 1 on failure
-        assertEquals(0, cli.delete(bucket, key));
+        assertEquals(Status.OK, cli().delete(bucket, key));
 	}
 
 }

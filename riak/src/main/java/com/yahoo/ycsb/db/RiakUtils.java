@@ -23,16 +23,19 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.basho.riak.client.core.query.RiakObject;
+import com.basho.riak.client.core.query.timeseries.Cell;
+import com.basho.riak.client.core.query.timeseries.ColumnDescription;
+import com.basho.riak.client.core.query.timeseries.QueryResult;
+import com.basho.riak.client.core.query.timeseries.Row;
 import com.yahoo.ycsb.ByteArrayByteIterator;
 import com.yahoo.ycsb.ByteIterator;
 
 /**
  * @author Basho Technologies, Inc.
+ * @author Sergey Galkin <srggal at gmail dot com>
  */
 final class RiakUtils {
 
@@ -161,4 +164,93 @@ final class RiakUtils {
     	return Long.parseLong( key_string );
 	}
 
+    /**
+     * Boolean flag that indicates whether original key should be stored into TS or not.
+     * Having original key stores into TS is no required for YCS.
+     * Moreover it is cause performance degradation during the test
+     * (for each record this additional field should be processed).
+     * That is why this option is turned off by default.
+     */
+    static boolean STORE_ORIGINAL_KEY = false;
+
+    static final int TS_NUMBER_OF_INTERNAL_COLUMNS = 3 + (STORE_ORIGINAL_KEY ? 1 : 0);
+
+    static Row asTSRow(String key, Map<String, ByteIterator> values) {
+        final String parts[] = key.split(",");
+
+        if (parts.length != TS_NUMBER_OF_INTERNAL_COLUMNS + (STORE_ORIGINAL_KEY ? 0 : 1)){
+            throw new IllegalStateException("Wrong Key format, expected key with timestamp, original key, host and workerId");
+        }
+
+        final long timestamp = Long.parseLong(parts[0]);
+        final String originalKey = parts[1];
+        final String host = parts[2];
+        final String worker = parts[3];
+
+        final int cellCount = values.size() + TS_NUMBER_OF_INTERNAL_COLUMNS;
+        final ArrayList<Cell> cells = new ArrayList<Cell>(cellCount);
+
+        cells.add(new Cell(host));
+        cells.add(new Cell(worker));
+        cells.add(Cell.newTimestamp(timestamp));
+
+
+        if (!values.isEmpty()){
+            if (STORE_ORIGINAL_KEY) {
+                cells.add(new Cell(originalKey));
+            }
+
+            final Iterator<Map.Entry<String, ByteIterator>> iterator = values.entrySet().iterator();
+            for (int i=TS_NUMBER_OF_INTERNAL_COLUMNS; i<cellCount; ++i) {
+
+                final Map.Entry<String, ByteIterator> e = iterator.next();
+                cells.add(new Cell(e.getValue().toString()));
+            }
+        }
+        return new Row(cells);
+    }
+
+    static Map.Entry<List<ColumnDescription>, Row> asTSRowWithColumns(String key, Map<String, ByteIterator> values) {
+        ArrayList<ColumnDescription> columns = new ArrayList<ColumnDescription>(values.size() + TS_NUMBER_OF_INTERNAL_COLUMNS);
+        columns.add(new ColumnDescription("host", ColumnDescription.ColumnType.VARCHAR));
+        columns.add(new ColumnDescription("worker", ColumnDescription.ColumnType.VARCHAR));
+        columns.add(new ColumnDescription("time", ColumnDescription.ColumnType.TIMESTAMP));
+
+        if (STORE_ORIGINAL_KEY) {
+            columns.add(new ColumnDescription("okey", ColumnDescription.ColumnType.VARCHAR));
+        }
+
+        for (String k: values.keySet()){
+            columns.add(new ColumnDescription(k, ColumnDescription.ColumnType.VARCHAR));
+        }
+
+        return new AbstractMap.SimpleImmutableEntry<List<ColumnDescription>, Row>(columns, asTSRow(key, values));
+    }
+
+    static Vector<HashMap<String, ByteIterator>> asSYCSBResults(QueryResult queryResult) {
+        final Vector<HashMap<String, ByteIterator>> result = new Vector<HashMap<String, com.yahoo.ycsb.ByteIterator>>(queryResult.getRowsCount());
+
+        final List<ColumnDescription> columns = queryResult.getColumnDescriptionsCopy();
+        final int columnsInTotal = columns.size();
+        final int columnCount = columnsInTotal - TS_NUMBER_OF_INTERNAL_COLUMNS;
+
+        for (Row row: queryResult){
+            final HashMap<String, ByteIterator> m = new HashMap<String, ByteIterator>(columnCount);
+            final Iterator<Cell> iterator = advance(row.iterator(), TS_NUMBER_OF_INTERNAL_COLUMNS);
+            for (int i=TS_NUMBER_OF_INTERNAL_COLUMNS; i<columnsInTotal; ++i ){
+                final Cell c = iterator.next();
+                m.put(columns.get(i).getName(), new ByteArrayByteIterator(c.getVarcharValue().unsafeGetValue()));
+            }
+
+            result.add(m);
+        }
+        return result;
+    }
+
+    public static <T> Iterator<T> advance(Iterator<T> iterator, int distance) {
+        for (int i=0; i<distance; ++i){
+            iterator.next();
+        }
+        return iterator;
+    }
 }
