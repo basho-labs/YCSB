@@ -130,18 +130,16 @@ public class RiakTSClient extends AbstractRiakClient {
 
     @Override
     public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-        final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(key, values);
+        final List<Row> rows = RiakUtils.asBatchedTSRow(key, values);
         //dumpOperation(data.getValue(), "UPSERT:TRY");
 
         final Store cmd = new Store.Builder(table)
-                .withRows(Collections.singleton(data.getValue()))
+                .withRows(rows)
                 .build();
 
         try {
             riakClient.execute(cmd);
-            dumpOperation(data.getValue(), "UPSERT:RESULT - OK");
         } catch (Exception e) {
-            dumpOperationException(e, data.getValue(), "UPSERT FAILED");
             return Status.ERROR;
         }
 

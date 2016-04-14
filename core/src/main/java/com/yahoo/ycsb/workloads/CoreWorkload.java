@@ -278,6 +278,18 @@ public class CoreWorkload extends Workload
   public static final String HOTSPOT_OPN_FRACTION = "hotspotopnfraction";
   
   /**
+	 * The name of the property for the batch size
+	 */
+	public static final String BATCH_SIZE_PROPERTY="batchsize";
+	
+	/**
+	 * The default batch size in number of rows
+	 */
+	public static final String BATCH_SIZE_PROPERTY_DEFAULT="1";
+	
+	public static int batchsize;
+  
+  /**
    * Default value of the percentage operations accessing the hot set.
    */
   public static final String HOTSPOT_OPN_FRACTION_DEFAULT = "0.8";
@@ -290,7 +302,7 @@ public class CoreWorkload extends Workload
 
 	Generator fieldchooser;
 
-	AcknowledgedCounterGenerator transactioninsertkeysequence;
+	protected AcknowledgedCounterGenerator transactioninsertkeysequence;
 	
 	IntegerGenerator scanlength;
 	
@@ -332,8 +344,9 @@ public class CoreWorkload extends Workload
 		table = p.getProperty(TABLENAME_PROPERTY,TABLENAME_PROPERTY_DEFAULT);
 		
 		fieldcount=Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY,FIELD_COUNT_PROPERTY_DEFAULT));
+		batchsize = Integer.parseInt(p.getProperty(BATCH_SIZE_PROPERTY, BATCH_SIZE_PROPERTY_DEFAULT));
     fieldnames = new ArrayList<String>();
-    for (int i = 0; i < fieldcount; i++) {
+    for (int i = 0; i < fieldcount * batchsize; i++) {
         fieldnames.add("field" + i);
     }
 		fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
@@ -491,7 +504,7 @@ public class CoreWorkload extends Workload
   /**
    * Builds values for all fields.
    */
-  private HashMap<String, ByteIterator> buildValues(String key) {        
+  protected HashMap<String, ByteIterator> buildValues(String key) {        
     HashMap<String,ByteIterator> values = new HashMap<String,ByteIterator>();
 
     for (String fieldkey : fieldnames) {

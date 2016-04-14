@@ -175,6 +175,46 @@ final class RiakUtils {
 
     static final int TS_NUMBER_OF_INTERNAL_COLUMNS = 3 + (STORE_ORIGINAL_KEY ? 1 : 0);
 
+    /**
+     * Create a batch list of rows from a collection of values
+     * @param key TS-encoded key, including family, series, timestamp and batchsize
+     * @param values Values to be encoded as cells
+     * @return List of Riak TS Rows that can be written to the database
+     */
+    static List<Row> asBatchedTSRow(String key, Map<String, ByteIterator> values) {
+    	final String parts[] = key.split(",");
+    	long timestamp = Long.parseLong(parts[0]);
+        final String originalKey = parts[1];
+        final String host = parts[2];
+        final String worker = parts[3];
+        final int batchNum = Integer.parseInt(parts[4]);
+        final int batchSize = values.size() / batchNum;
+    	
+    	List<Row> rows = new ArrayList<Row>();
+    	
+    	int batchStart = 0;
+    	
+    	
+    	for (int batchCount = 0; batchCount < batchNum; batchCount++)
+    	{
+    		batchStart = batchSize * batchCount;
+    		int batchEnd = (values.keySet().size() / batchNum) + batchStart;
+    		
+    		ArrayList<Cell> cells = new ArrayList<Cell>(batchSize);
+    		cells.add(new Cell(host));
+            cells.add(new Cell(worker));
+            cells.add(Cell.newTimestamp(timestamp));
+    		for (int batchIndex = batchStart; batchIndex < batchEnd; batchIndex++)
+    		{
+    			String cKey = values.keySet().toArray()[batchIndex].toString();
+    			cells.add(new Cell(values.get(cKey).toString()));
+    		}
+    		rows.add(new Row(cells));
+    		timestamp++;
+    	}
+    	return rows;
+    }
+    
     static Row asTSRow(String key, Map<String, ByteIterator> values) {
         final String parts[] = key.split(",");
 

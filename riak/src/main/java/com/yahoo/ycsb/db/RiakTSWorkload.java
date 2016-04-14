@@ -15,12 +15,18 @@
  */
 package com.yahoo.ycsb.db;
 
+import com.yahoo.ycsb.ByteIterator;
+import com.yahoo.ycsb.DB;
+import com.yahoo.ycsb.RandomByteIterator;
+import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.WorkloadException;
 import com.yahoo.ycsb.workloads.CoreWorkload;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -69,14 +75,15 @@ public class RiakTSWorkload extends CoreWorkload {
             ts = RiakUtils.getKeyAsLong(key);
         }
 
-        return String.format("%d,%s,%s,%s", ts, key, host, workerId);
+        return String.format("%d,%s,%s,%s,%s", ts, key, host, workerId,batchsize);
     }
-
+    
     @Override
     public void init(Properties p) throws WorkloadException {
         super.init(p);
         this.timestamp = Long.parseLong(p.getProperty(INITIAL_TS_PROPERTY, Long.toString(System.currentTimeMillis())));
         this.useOwnTimestamp = Boolean.parseBoolean(p.getProperty(USE_OWN_TIMESTAMP, "false"));
+        
         this.timestampMap = new HashMap<String, Long>();
     }
 }
