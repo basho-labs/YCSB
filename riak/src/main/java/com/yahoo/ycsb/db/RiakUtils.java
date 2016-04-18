@@ -173,7 +173,7 @@ final class RiakUtils {
      */
     static boolean STORE_ORIGINAL_KEY = false;
 
-    static final int TS_NUMBER_OF_INTERNAL_COLUMNS = 3 + (STORE_ORIGINAL_KEY ? 1 : 0);
+    static final int TS_NUMBER_OF_INTERNAL_COLUMNS = 4 + (STORE_ORIGINAL_KEY ? 1 : 0);
 
     /**
      * Create a batch list of rows from a collection of values
