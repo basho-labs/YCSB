@@ -190,11 +190,14 @@ final class RiakUtils {
         final int batchNum = Integer.parseInt(parts[4]);
         final int batchSize = values.size() / batchNum;
     	
+        boolean useAllTypeSchema = false;
+        if (parts.length == 6) {
+        	useAllTypeSchema = Boolean.parseBoolean(parts[5]);
+        }
+        
     	List<Row> rows = new ArrayList<Row>();
     	
     	int batchStart = 0;
-    	
-    	
     	for (int batchCount = 0; batchCount < batchNum; batchCount++)
     	{
     		batchStart = batchSize * batchCount;
@@ -204,11 +207,21 @@ final class RiakUtils {
     		cells.add(new Cell(host));
             cells.add(new Cell(worker));
             cells.add(Cell.newTimestamp(timestamp));
-    		for (int batchIndex = batchStart; batchIndex < batchEnd; batchIndex++)
-    		{
-    			String cKey = values.keySet().toArray()[batchIndex].toString();
-    			cells.add(new Cell(values.get(cKey).toString()));
-    		}
+            
+            if (useAllTypeSchema) {
+            	Random random = new Random(System.currentTimeMillis());
+            	cells.add(new Cell(random.nextInt(1000))); //sint64
+            	cells.add(new Cell(originalKey)); //varchar
+            	cells.add(new Cell(random.nextDouble() * 100)); //double
+            	cells.add(new Cell(random.nextBoolean()));//boolean
+            } else {
+	    		for (int batchIndex = batchStart; batchIndex < batchEnd; batchIndex++)
+	    		{
+	    			String cKey = values.keySet().toArray()[batchIndex].toString();
+	    			cells.add(new Cell(values.get(cKey).toString()));
+	    		}
+            }
+                       
     		rows.add(new Row(cells));
     		timestamp++;
     	}
@@ -223,7 +236,6 @@ final class RiakUtils {
         }
 
         final long timestamp = Long.parseLong(parts[0]);
-        final String originalKey = parts[1];
         final String host = parts[2];
         final String worker = parts[3];
 
@@ -234,11 +246,7 @@ final class RiakUtils {
         cells.add(new Cell(worker));
         cells.add(Cell.newTimestamp(timestamp));
 
-
         if (!values.isEmpty()){
-            if (STORE_ORIGINAL_KEY) {
-                cells.add(new Cell(originalKey));
-            }
 
             final Iterator<Map.Entry<String, ByteIterator>> iterator = values.entrySet().iterator();
             for (int i=TS_NUMBER_OF_INTERNAL_COLUMNS; i<cellCount; ++i) {
@@ -255,10 +263,6 @@ final class RiakUtils {
         columns.add(new ColumnDescription("host", ColumnDescription.ColumnType.VARCHAR));
         columns.add(new ColumnDescription("worker", ColumnDescription.ColumnType.VARCHAR));
         columns.add(new ColumnDescription("time", ColumnDescription.ColumnType.TIMESTAMP));
-
-        if (STORE_ORIGINAL_KEY) {
-            columns.add(new ColumnDescription("okey", ColumnDescription.ColumnType.VARCHAR));
-        }
 
         for (String k: values.keySet()){
             columns.add(new ColumnDescription(k, ColumnDescription.ColumnType.VARCHAR));
