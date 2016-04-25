@@ -25,6 +25,7 @@ import com.basho.riak.client.core.query.timeseries.Row;
 import com.yahoo.ycsb.Client;
 import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
+
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -275,4 +276,14 @@ public abstract class AbstractRiakClient extends DB {
             }
         }
     }
+    
+    protected void dumpOperation(List<Row> rows, String string) {
+    	if (config.debug || logger.isTraceEnabled()) {
+			String msg = string + ": ";
+			for (Row row : rows) {
+				msg += row.getCellsCopy().toString() + " ";
+			}
+			System.out.println(msg);
+    	}
+	}
 }

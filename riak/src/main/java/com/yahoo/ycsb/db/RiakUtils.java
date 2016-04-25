@@ -160,7 +160,7 @@ final class RiakUtils {
     
 	
 	static Long getKeyAsLong(String key) {
-		String key_string = key.replace("user", "").replaceFirst("^0*", "");
+		String key_string = key.replace("user", "");
     	return Long.parseLong( key_string );
 	}
 
@@ -173,7 +173,7 @@ final class RiakUtils {
      */
     static boolean STORE_ORIGINAL_KEY = false;
 
-    static final int TS_NUMBER_OF_INTERNAL_COLUMNS = 4 + (STORE_ORIGINAL_KEY ? 1 : 0);
+    static final int TS_NUMBER_OF_INTERNAL_COLUMNS = 5 + (STORE_ORIGINAL_KEY ? 1 : 0);
 
     /**
      * Create a batch list of rows from a collection of values

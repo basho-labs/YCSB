@@ -131,7 +131,7 @@ public class RiakTSClient extends AbstractRiakClient {
     @Override
     public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
         final List<Row> rows = RiakUtils.asBatchedTSRow(key, values);
-        //dumpOperation(data.getValue(), "UPSERT:TRY");
+        dumpOperation(rows, "INSERT:TRY");
 
         final Store cmd = new Store.Builder(table)
                 .withRows(rows)
@@ -146,7 +146,7 @@ public class RiakTSClient extends AbstractRiakClient {
         return Status.OK;
     }
 
-    @Override
+	@Override
     public Status delete(String table, String key) {
         final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(key, Collections.EMPTY_MAP);
 
