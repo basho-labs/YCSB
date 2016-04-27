@@ -140,6 +140,7 @@ public class RiakTSClient extends AbstractRiakClient {
         try {
             riakClient.execute(cmd);
         } catch (Exception e) {
+        	System.out.println(e.getMessage());
             return Status.ERROR;
         }
 
