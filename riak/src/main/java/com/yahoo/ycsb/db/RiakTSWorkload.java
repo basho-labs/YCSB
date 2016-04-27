@@ -60,7 +60,7 @@ public class RiakTSWorkload extends CoreWorkload {
 
     @Override
     public String buildKeyName(long keynum) {
-        final String key = super.buildKeyName(keynum);
+        final String key = super.buildKeyName(keynum + 1); // Add one to the keynum to ensure a timestamp >= 0
         String workerId = String.format("worker-%d", Thread.currentThread().getId());
 
         final long ts = RiakUtils.getKeyAsLong(key);
