@@ -32,7 +32,8 @@ import java.util.*;
  * @author Sergey Galkin <srggal at gmail dot com>
  */
 public class RiakTSClient extends AbstractRiakClient {
-    @Override
+    
+	@Override
     public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
 
         final Row row = RiakUtils.asTSRow(key, Collections.EMPTY_MAP);
@@ -40,6 +41,10 @@ public class RiakTSClient extends AbstractRiakClient {
         dumpOperation(row, "READ:TRY");
 
         QueryResult response = QueryResult.EMPTY;
+        
+        // Attempt the read up to the configured
+        // number of re-try counts. Once reached, the
+        // operation will fail
         for (int i=0; i<config().readRetryCount()+1; ++i) {
             final Fetch cmd = new Fetch.Builder(table, row)
                     .build();
@@ -58,15 +63,16 @@ public class RiakTSClient extends AbstractRiakClient {
             }
         }
 
-
+        // Check if the result is empty
         if ( QueryResult.EMPTY.equals(response))
         {
             dumpOperation(row, "READ:RESULT - NOT FOUND");
             return Status.NOT_FOUND;
         }
 
-        dumpOperation(response.iterator().next(), "READ:RESULT - OK, teh 1st of %d", response.getRowsCount());
+        dumpOperation(response.iterator().next(), "READ:RESULT - OK, the first of %d", response.getRowsCount());
 
+        // Insure that just a single row was returned
         assert response.getRowsCount() == 1;
         final Vector<HashMap<String, ByteIterator>> v = RiakUtils.asSYCSBResults(response);
         assert v.size() == 1;
@@ -92,6 +98,7 @@ public class RiakTSClient extends AbstractRiakClient {
         final String worker = iterator.next().getVarcharAsUTF8String();
         final long startTime = iterator.next().getTimestamp();
 
+        // Construct the query SQL 
         final String query = String.format("SELECT * FROM %s " +
                 " WHERE " +
                     " host = '%s' " +
