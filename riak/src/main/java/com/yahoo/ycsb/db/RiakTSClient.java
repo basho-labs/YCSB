@@ -117,13 +117,13 @@ public class RiakTSClient extends AbstractRiakClient {
             return Status.ERROR;
         }
 
-        if ( QueryResult.EMPTY.equals(response))
+        if ( response.getRowsCount() == 0 )
         {
             dumpOperation(data.getValue(), "SCAN:RESULT - NOT FOUND");
             return Status.NOT_FOUND;
         }
-
-        dumpOperation(response.iterator().next(), "SCAN:RESULT - OK, the 1st of %d", response.getRowsCount());
+        
+        //dumpOperation(response.iterator().next(), "SCAN:RESULT - OK, the 1st of %d", response.getRowsCopy());
 
         final Vector<HashMap<String, ByteIterator>> v = RiakUtils.asSYCSBResults(response);
         result.addAll( v );
