@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.util.*;
 
 import com.basho.riak.client.core.query.RiakObject;
@@ -39,6 +40,8 @@ import com.yahoo.ycsb.ByteIterator;
  */
 final class RiakUtils {
 
+	private static long timestamp = 1;
+	
     private RiakUtils() {
         super();
     }
@@ -226,6 +229,27 @@ final class RiakUtils {
     		timestamp++;
     	}
     	return rows;
+    }
+    
+    static List<Row> asBatchedYCSBRow(String key, Map<String, ByteIterator> values, String hostname, String id) {
+    	List<Row> rows = new ArrayList<Row>();
+    	ArrayList<Cell> cells = new ArrayList<Cell>();
+    	
+    	long lKey = Long.parseLong(key.replace("user", ""));
+    	
+    	cells.add(new Cell(hostname));
+    	cells.add(new Cell(id));
+    	cells.add(Cell.newTimestamp(lKey));
+    	
+    	for (String k : values.keySet()) {
+    		cells.add(new Cell(values.get(k).toString()));
+    	}
+    	
+    	rows.add(new Row(cells));
+    	
+    	timestamp++;
+    	
+    	return rows;    	
     }
     
     static Row asTSRow(String key, Map<String, ByteIterator> values) {

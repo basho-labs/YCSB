@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -159,11 +160,19 @@ public abstract class AbstractRiakClient extends DB {
         assert config != null;
         return config;
     }
+    
+    static String hostname;
 
     @Override
     public void init() throws DBException {
         super.init();
 
+        try {
+			hostname = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException e1) {
+			hostname = "localhost";
+		}
+        
         // Keep track of number of calls to init (for later cleanup)
         INIT_COUNT.incrementAndGet();
 
