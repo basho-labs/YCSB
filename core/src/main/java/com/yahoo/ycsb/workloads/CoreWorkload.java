@@ -468,6 +468,10 @@ public class CoreWorkload extends Workload
 		{
 			scanlength=new ZipfianGenerator(1,maxscanlength);
 		}
+		else if (scanlengthdistrib.compareTo("constant")==0)
+		{
+			scanlength=new ConstantIntegerGenerator(maxscanlength);
+		}
 		else
 		{
 			throw new WorkloadException("Distribution \""+scanlengthdistrib+"\" not allowed for scan length");
