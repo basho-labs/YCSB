@@ -33,41 +33,8 @@ public class RiakTSClient extends AbstractRiakClient {
     
 	@Override
     public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
-		
-		Long k = Long.parseLong(key.replace("user", ""));
-		
-        String query = String.format("SELECT * FROM %s " +
-                " WHERE " +
-                " host = '%s' " +
-                " AND worker = '%s' " +
-                " AND time >= %d AND time < %d",
-                table, hostname, Thread.currentThread().getName(), k, k+1);
-        
-        final Query cmd = new Query.Builder(query).build();
-        QueryResult response = QueryResult.EMPTY;
-        
-        // Attempt the read up to the configured
-        // number of re-try counts. Once reached, the
-        // operation will fail
-        for (int i=0; i<config().readRetryCount()+1; ++i) {
-            try {
-                response = riakClient.execute(cmd);
-                if ( !QueryResult.EMPTY.equals(response)){
-                    break;
-                }
-            } catch (Exception e) {
-                return Status.ERROR;
-            }
-        }
-
-        // Check if the result is empty
-        if (response.getRowsCount() == 0)
-        {
-            return Status.NOT_FOUND;
-        }
-        
-        return Status.OK;
-
+		// In RiakTS, a read is just a scan for a single key, so defer to the scan implementation
+		return scan(table, key, 1, fields, null);
     }
 
     @Override
