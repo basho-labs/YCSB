@@ -41,14 +41,14 @@ public class RiakTSClient extends AbstractRiakClient {
     public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
         String k = startkey.replace("user", "");
     	Long lk = Long.parseLong(k) + 1;
-
+    	
         // Construct the query SQL 
         String query = String.format("SELECT * FROM %s " +
                 " WHERE " +
                 " host = '%s' " +
                 " AND worker = '%s' " +
                 " AND time >= %d AND time < %d",
-                table, hostname, Thread.currentThread().getName(), lk, lk+recordcount);
+                table, hostname, "worker", lk, lk+recordcount);
 
         final Query cmd = new Query.Builder(query).build();
 

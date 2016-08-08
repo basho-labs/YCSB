@@ -208,7 +208,7 @@ final class RiakUtils {
     		
     		ArrayList<Cell> cells = new ArrayList<Cell>(batchSize);
     		cells.add(new Cell(host));
-            cells.add(new Cell(worker));
+            cells.add(new Cell("worker"));
             cells.add(Cell.newTimestamp(timestamp));
             
             if (useAllTypeSchema) {
@@ -238,7 +238,7 @@ final class RiakUtils {
     	long lKey = Long.parseLong(key.replace("user", ""));
     	
     	cells.add(new Cell(hostname));
-    	cells.add(new Cell(id));
+    	cells.add(new Cell("worker"));
     	cells.add(Cell.newTimestamp(lKey));
     	
     	for (String k : values.keySet()) {
