@@ -18,6 +18,7 @@ package com.yahoo.ycsb.db;
 import com.basho.riak.client.api.commands.timeseries.Delete;
 import com.basho.riak.client.api.commands.timeseries.Query;
 import com.basho.riak.client.api.commands.timeseries.Store;
+import com.basho.riak.client.core.query.timeseries.Cell;
 import com.basho.riak.client.core.query.timeseries.ColumnDescription;
 import com.basho.riak.client.core.query.timeseries.QueryResult;
 import com.basho.riak.client.core.query.timeseries.Row;
@@ -75,11 +76,23 @@ public class RiakTSClient extends AbstractRiakClient {
     @Override
     public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     	
+    	// Build the timestamp
     	String k = key.replace("user", "");
     	Long lk = Long.parseLong(k) + 1;
     	
-        final List<Row> rows = RiakUtils.asBatchedYCSBRow(lk.toString(), values, hostname, Thread.currentThread().getName());
-        dumpOperation(rows, "INSERT:TRY");
+    	// Build the row
+    	ArrayList<Cell> cells = new ArrayList<Cell>(values.size() + 3);
+    	List<Row> rows = new ArrayList<Row>();
+    	cells.add(new Cell(hostname));
+        cells.add(new Cell("worker"));
+        cells.add(Cell.newTimestamp(lk));
+        for (int valuesIndex = 0; valuesIndex < values.size(); valuesIndex++)
+		{
+			String cKey = values.keySet().toArray()[valuesIndex].toString();
+			cells.add(new Cell(values.get(cKey).toString()));
+		}
+        rows.add(new Row(cells));
+       
         final Store cmd = new Store.Builder(table)
                 .withRows(rows)
                 .build();
