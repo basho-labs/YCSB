@@ -26,6 +26,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.Status;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Sergey Galkin <srggal at gmail dot com>
@@ -109,20 +110,26 @@ public class RiakTSClient extends AbstractRiakClient {
 
 	@Override
     public Status delete(String table, String key) {
-        final Map.Entry<List<ColumnDescription>,Row> data = RiakUtils.asTSRowWithColumns(key, Collections.EMPTY_MAP);
-
-        dumpOperation(data.getValue(), "DELETE:TRY");
-        final Delete cmd = new Delete.Builder(table, data.getValue())
-                .build();
-
+		
+		// Build the timestamp
+    	String k = key.replace("user", "");
+    	Long lk = Long.parseLong(k) + 1;
+    	
+    	// Build the key
+    	ArrayList<Cell> cells = new ArrayList<Cell>(3);
+    	cells.add(new Cell(hostname));
+        cells.add(new Cell("worker"));
+        cells.add(Cell.newTimestamp(lk));
+        
+        // Delete the key
+        Delete delete = new Delete.Builder(table, cells).build();
         try {
-            riakClient.execute(cmd);
-            dumpOperation(data.getValue(), "DELETE:RESULT - OK");
-        } catch (Exception e) {
-            dumpOperationException(e, data.getValue(), "DELETE:FAILED");
-            return Status.ERROR;
-        }
-
+			riakClient.execute(delete);
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+			return Status.ERROR;
+		}
+        
         return Status.OK;
     }
 }
