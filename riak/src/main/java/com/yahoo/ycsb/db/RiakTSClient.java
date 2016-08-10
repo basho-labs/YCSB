@@ -19,14 +19,12 @@ import com.basho.riak.client.api.commands.timeseries.Delete;
 import com.basho.riak.client.api.commands.timeseries.Query;
 import com.basho.riak.client.api.commands.timeseries.Store;
 import com.basho.riak.client.core.query.timeseries.Cell;
-import com.basho.riak.client.core.query.timeseries.ColumnDescription;
 import com.basho.riak.client.core.query.timeseries.QueryResult;
 import com.basho.riak.client.core.query.timeseries.Row;
 import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.Status;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 /**
  * @author Sergey Galkin <srggal at gmail dot com>
