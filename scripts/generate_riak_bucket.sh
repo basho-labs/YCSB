@@ -3,7 +3,7 @@
 SIZE="${1:-10}"
 QUANTUM="${2:-10}	"
 COUNT=0
-CMD="./riak-admin bucket-type create usertable '{\"props\": {\"w\": 1, \"r\": 1, \"rw\": 1, \"n_val\": ${RIAK_NVAL:-1}, \"table_def\": \"CREATE TABLE usertable (
+CMD="./riak-admin bucket-type create usertable '{\"props\": {\"w\": 1, \"r\": 1, \"rw\": 1, \"n_val\": ${RIAK_N_VAL:-1}, \"table_def\": \"CREATE TABLE usertable (
 		host VARCHAR NOT NULL, 
 		worker VARCHAR NOT NULL, 
 		time TIMESTAMP NOT NULL"
