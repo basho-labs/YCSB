@@ -16,6 +16,7 @@
 package com.yahoo.ycsb.db;
 
 import com.basho.riak.client.api.commands.timeseries.Delete;
+import com.basho.riak.client.api.commands.timeseries.Fetch;
 import com.basho.riak.client.api.commands.timeseries.Query;
 import com.basho.riak.client.api.commands.timeseries.Store;
 import com.basho.riak.client.core.query.timeseries.Cell;
@@ -33,8 +34,25 @@ public class RiakTSClient extends AbstractRiakClient {
     
 	@Override
     public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
-		// In RiakTS, a read is just a scan for a single key, so defer to the scan implementation
-		return scan(table, key, 1, fields, null);
+		String k = key.replace("user", "");
+    	Long lk = Long.parseLong(k) + 1;
+    	
+    	final List<Cell> keyCells = Arrays.asList(new Cell(hostname), new Cell("worker"), Cell.newTimestamp(lk));
+    
+    	Fetch cmd = new Fetch.Builder(table, keyCells).build();
+    	final QueryResult response;
+    	try {
+    		response = riakClient.execute(cmd);
+    	} catch (Exception e) {
+    		return Status.ERROR;
+    	}
+    	
+    	if ( response.getRowsCount() == 0 )
+    	{
+    		return Status.NOT_FOUND;
+    	}
+    	
+    	return Status.OK;
     }
 
     @Override
