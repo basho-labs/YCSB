@@ -55,10 +55,23 @@ public class RiakTSClient extends AbstractRiakClient {
     	return Status.OK;
     }
 
-    @Override
+	@Override
     public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
-        String k = startkey.replace("user", "");
-    	Long lk = Long.parseLong(k) + 1;
+		long timestamp;
+		String host;
+		String workerName;
+		
+		if (startkey.startsWith("user")) {
+			String k = startkey.replace("user", "");
+	    	timestamp = Long.parseLong(k) + 1;
+	    	host = hostname;
+	    	workerName = "worker";
+		} else {
+			String[] parts = startkey.split(",");
+	    	timestamp = Long.parseLong(parts[0]);
+	    	host = parts[2];
+	    	workerName = parts[3];
+		}
     	
         // Construct the query SQL 
         String query = String.format("SELECT * FROM %s " +
@@ -66,8 +79,8 @@ public class RiakTSClient extends AbstractRiakClient {
                 " host = '%s' " +
                 " AND worker = '%s' " +
                 " AND time >= %d AND time < %d",
-                table, hostname, "worker", lk, lk+recordcount);
-
+                table, host, workerName, timestamp, timestamp+recordcount);
+        
         final Query cmd = new Query.Builder(query).build();
 
         final QueryResult response;
@@ -94,16 +107,28 @@ public class RiakTSClient extends AbstractRiakClient {
     @Override
     public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
     	
-    	// Build the timestamp
-    	String k = key.replace("user", "");
-    	Long lk = Long.parseLong(k) + 1;
-    	
+    	long timestamp;
+		String host;
+		String workerName;
+		
+		if (key.startsWith("user")) {
+			String k = key.replace("user", "");
+	    	timestamp = Long.parseLong(k) + 1;
+	    	host = hostname;
+	    	workerName = "worker";
+		} else {
+			String[] parts = key.split(",");
+	    	timestamp = Long.parseLong(parts[0]);
+	    	host = parts[2];
+	    	workerName = parts[3];
+		}
+		
     	// Build the row
     	ArrayList<Cell> cells = new ArrayList<Cell>(values.size() + 3);
     	List<Row> rows = new ArrayList<Row>();
-    	cells.add(new Cell(hostname));
-        cells.add(new Cell("worker"));
-        cells.add(Cell.newTimestamp(lk));
+    	cells.add(new Cell(host));
+        cells.add(new Cell(workerName));
+        cells.add(Cell.newTimestamp(timestamp));
         for (int valuesIndex = 0; valuesIndex < values.size(); valuesIndex++)
 		{
 			String cKey = values.keySet().toArray()[valuesIndex].toString();
