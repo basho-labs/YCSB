@@ -14,7 +14,7 @@ while [ $COUNT -lt $SIZE ]; do
 done
 
 CMD="$CMD 
-	, primary key ((host, worker, quantum(time, $QUANTUM, m)), host, worker, time))\"}}';"
+	, primary key ((host, worker, quantum(time, $QUANTUM, s)), host, worker, time))\"}}';"
 
 echo $CMD
 

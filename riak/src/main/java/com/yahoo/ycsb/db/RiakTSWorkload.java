@@ -15,18 +15,12 @@
  */
 package com.yahoo.ycsb.db;
 
-import com.yahoo.ycsb.ByteIterator;
-import com.yahoo.ycsb.DB;
-import com.yahoo.ycsb.RandomByteIterator;
-import com.yahoo.ycsb.StringByteIterator;
 import com.yahoo.ycsb.WorkloadException;
 import com.yahoo.ycsb.workloads.CoreWorkload;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Properties;
 
 /**
@@ -46,12 +40,9 @@ public class RiakTSWorkload extends CoreWorkload {
      */
     public static final String USE_OWN_TIMESTAMP="useowntimestamp";
     
-    private static final String USE_ALL_TYPE_SCHEMA="alltypeschema";
-    private static final String USE_ALL_TYPE_SCHEMA_DEFAULT="false";
-    
     private long timestamp;
+    private boolean useOwnTimestamp;
     private final String host;
-    private boolean alltypeschema;
     private HashMap<String, Long> timestampMap;
     
     public RiakTSWorkload() throws UnknownHostException {
@@ -60,19 +51,32 @@ public class RiakTSWorkload extends CoreWorkload {
 
     @Override
     public String buildKeyName(long keynum) {
-        final String key = super.buildKeyName(keynum + 1); // Add one to the keynum to ensure a timestamp >= 0
+        final String key = super.buildKeyName(keynum);
         String workerId = String.format("worker-%d", Thread.currentThread().getId());
 
-        final long ts = RiakUtils.getKeyAsLong(key);
-        return String.format("%d,%s,%s,%s,%s,%s", ts, key, host, workerId,batchsize,alltypeschema);
+        final long ts;
+        if (useOwnTimestamp) {
+        	if (timestampMap.containsKey(workerId))
+        	{
+        		ts = (Long) timestampMap.get(workerId) + 1;
+        		timestampMap.put(workerId, ts);
+        	} else
+        	{
+        		ts = this.timestamp;
+        		this.timestampMap.put(workerId, ts);
+        	}
+        } else {
+            ts = RiakUtils.getKeyAsLong(key);
+        }
+
+        return String.format("%d,%s,%s,%s", ts, key, host, workerId);
     }
-    
+
     @Override
     public void init(Properties p) throws WorkloadException {
         super.init(p);
         this.timestamp = Long.parseLong(p.getProperty(INITIAL_TS_PROPERTY, Long.toString(System.currentTimeMillis())));
-        this.alltypeschema = Boolean.parseBoolean(p.getProperty(USE_ALL_TYPE_SCHEMA, USE_ALL_TYPE_SCHEMA_DEFAULT));
-        
+        this.useOwnTimestamp = Boolean.parseBoolean(p.getProperty(USE_OWN_TIMESTAMP, "false"));
         this.timestampMap = new HashMap<String, Long>();
     }
 }
