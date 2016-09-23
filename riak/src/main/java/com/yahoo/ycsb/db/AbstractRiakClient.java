@@ -51,7 +51,9 @@ public abstract class AbstractRiakClient extends DB {
         private static final String READ_RETRY_COUNT_PROPERTY = "riak.read_retry_count";
         private static final String DEBUG_PROPERTY = "riak.debug";
         private static final String SCAN_SIZE_PROPERTY="riak.scan_size";
-
+        private static final String QUANTA_SIZE_PROPERTY="riak.quanta_size";
+        private static final String QUANTA_SPAN_PROPERTY="riak.quanta_span";
+        
         private String bucketType;
         private int defaultPort;
         private String hosts;
@@ -61,6 +63,8 @@ public abstract class AbstractRiakClient extends DB {
         private boolean debug;
         private int threadCount;
         private int scan_size;
+        private int quantaSize;
+        private int quantaSpan;
 
         private Config() {}
 
@@ -100,6 +104,9 @@ public abstract class AbstractRiakClient extends DB {
             );
 
             cfg.scan_size = Integer.parseInt(props.getProperty(SCAN_SIZE_PROPERTY, "-1"));
+            
+            cfg.quantaSize = Integer.parseInt(props.getProperty(QUANTA_SIZE_PROPERTY, "-1"));
+            cfg.quantaSpan = Integer.parseInt(props.getProperty(QUANTA_SPAN_PROPERTY, "-1"));
 
             return cfg;
         }
@@ -141,6 +148,14 @@ public abstract class AbstractRiakClient extends DB {
 
         public int scanSize() {
             return scan_size;
+        }
+        
+        public int quantaSize() {
+        	return quantaSize;
+        }
+        
+        public int quantaSpan() {
+        	return quantaSpan;
         }
     }
 

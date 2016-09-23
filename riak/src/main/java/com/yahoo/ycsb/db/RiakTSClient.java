@@ -56,6 +56,37 @@ public class RiakTSClient extends AbstractRiakClient {
     	return Status.OK;
     }
 
+	private Status quantaScan(String table, long key, int recordcount, int quantaSize, int quantaSpan) {
+		
+		//System.out.println("q");
+		
+		long q = getQuanta(key, quantaSize);
+		long startKey = 1;
+		
+		if (quantaSpan == 1) {
+			if ((key + recordcount)  < q + quantaSize) {
+				// Already won't span more than 1 quanta
+				startKey = key;
+			} else {
+				// Will span more than 1 quanta, so get the last N keys of the quanta,
+				// where N = quantaSize
+				startKey = ((q + quantaSize) - (recordcount + 1));
+			}
+		} else {
+			// Spanning multiple quantum
+		}
+		
+		//System.out.println("Key: " + key + ", Quanta: " + q + ", Start Key: " + startKey);
+		
+		return Status.OK;
+	}
+	
+	private long getQuanta(long key, int quantaSize) {
+		long diff = key % quantaSize;
+		long q = key - diff;
+		return q;
+	}
+	
 	@Override
     public Status scan(String table, String startkey, int recordcount, Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 		long timestamp;
@@ -72,6 +103,10 @@ public class RiakTSClient extends AbstractRiakClient {
 	    	timestamp = Long.parseLong(parts[0]);
 	    	host = parts[2];
 	    	workerName = parts[3];
+		}
+		
+		if (config().quantaSize() > 0 && config().quantaSpan() > 0) {
+			return quantaScan(table, timestamp, recordcount, config().quantaSize(), config().quantaSpan());
 		}
     	
         // Construct the query SQL 
