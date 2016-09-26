@@ -64,9 +64,9 @@ public class RiakTSClient extends AbstractRiakClient {
 		
 		if (startkey.startsWith("user")) {
 			String k = startkey.replace("user", "");
-	    	timestamp = Long.parseLong(k) + 1;
+	    	timestamp = Math.round((Long.parseLong(k) + 1) / config().threadCount());
 	    	host = hostname;
-	    	workerName = "worker";
+	    	workerName = "worker-" + Thread.currentThread().getId();
 		} else {
 			String[] parts = startkey.split(",");
 	    	timestamp = Long.parseLong(parts[0]);
@@ -81,7 +81,7 @@ public class RiakTSClient extends AbstractRiakClient {
                 " AND worker = '%s' " +
                 " AND time >= %d AND time < %d",
                 table, host, workerName, timestamp, timestamp+recordcount);
-        
+                
         final Query cmd = new Query.Builder(query).build();
 
         final QueryResult response;
@@ -116,7 +116,7 @@ public class RiakTSClient extends AbstractRiakClient {
 			String k = key.replace("user", "");
 	    	timestamp = Long.parseLong(k) + 1;
 	    	host = hostname;
-	    	workerName = "worker";
+	    	workerName = "worker-" + Thread.currentThread().getId();
 		} else {
 			String[] parts = key.split(",");
 	    	timestamp = Long.parseLong(parts[0]);

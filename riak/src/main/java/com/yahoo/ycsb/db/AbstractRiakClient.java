@@ -98,7 +98,7 @@ public abstract class AbstractRiakClient extends DB {
             cfg.threadCount = Integer.parseInt(
                             props.getProperty(Client.THREAD_COUNT_PROPERTY, "1")
             );
-
+            
             cfg.scan_size = Integer.parseInt(props.getProperty(SCAN_SIZE_PROPERTY, "-1"));
 
             return cfg;
@@ -141,6 +141,10 @@ public abstract class AbstractRiakClient extends DB {
 
         public int scanSize() {
             return scan_size;
+        }
+        
+        public int threadCount() {
+        	return threadCount;
         }
     }
 
