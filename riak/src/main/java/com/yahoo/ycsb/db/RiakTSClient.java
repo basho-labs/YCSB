@@ -64,12 +64,12 @@ public class RiakTSClient extends AbstractRiakClient {
 		
 		if (startkey.startsWith("user")) {
 			String k = startkey.replace("user", "");
-	    	timestamp = Math.round((Long.parseLong(k) + 1) / config().threadCount());
+			timestamp = Long.parseLong(k);
 	    	host = hostname;
 	    	workerName = "worker-" + Thread.currentThread().getId();
 		} else {
 			String[] parts = startkey.split(",");
-	    	timestamp = Long.parseLong(parts[0]);
+			timestamp = Math.round((Long.parseLong(parts[0]) + 1) / config().threadCount());
 	    	host = parts[1];
 	    	workerName = parts[2];
 		}
