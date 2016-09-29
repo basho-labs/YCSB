@@ -29,4 +29,13 @@ public class TimeSeriesWorkload extends CoreWorkload {
 		
 		super.keysequence = new ThreadCounterGenerator();
 	}
+	
+	@Override
+	public String buildKeyName(long keynum) {
+		if (!orderedinserts)
+ 		{
+ 			keynum=Utils.hash(keynum);
+ 		}
+		return keynum + "," + this.hostname + ",worker-" + Thread.currentThread().getId();
+	}
 }

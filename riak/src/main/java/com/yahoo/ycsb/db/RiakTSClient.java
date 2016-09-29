@@ -70,8 +70,8 @@ public class RiakTSClient extends AbstractRiakClient {
 		} else {
 			String[] parts = startkey.split(",");
 	    	timestamp = Long.parseLong(parts[0]);
-	    	host = parts[2];
-	    	workerName = parts[3];
+	    	host = parts[1];
+	    	workerName = parts[2];
 		}
     	
         // Construct the query SQL 
@@ -120,8 +120,8 @@ public class RiakTSClient extends AbstractRiakClient {
 		} else {
 			String[] parts = key.split(",");
 	    	timestamp = Long.parseLong(parts[0]);
-	    	host = parts[2];
-	    	workerName = parts[3];
+	    	host = parts[1];
+	    	workerName = parts[2];
 		}
 		
     	// Build the row
