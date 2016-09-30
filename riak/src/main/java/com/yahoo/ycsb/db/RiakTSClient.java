@@ -82,13 +82,16 @@ public class RiakTSClient extends AbstractRiakClient {
                 " AND time >= %d AND time < %d",
                 table, host, workerName, timestamp, timestamp+recordcount);
                 
+        System.out.println(startkey);
         final Query cmd = new Query.Builder(query).build();
 
         final QueryResult response;
         try {
             response = riakClient.execute(cmd);
+            System.out.println(query + ", " + response.getRowsCount());
         } catch (Exception e) {
         	logger.error(e.getMessage());
+        	System.out.println(e.getMessage());
             return Status.ERROR;
         }
 
@@ -123,6 +126,8 @@ public class RiakTSClient extends AbstractRiakClient {
 	    	host = parts[1];
 	    	workerName = parts[2];
 		}
+		
+		System.out.println(timestamp + "," + host + "," + workerName);
 		
     	// Build the row
     	ArrayList<Cell> cells = new ArrayList<Cell>(values.size() + 3);
