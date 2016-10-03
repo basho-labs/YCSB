@@ -13,6 +13,7 @@ public class ThreadCounterGenerator extends IntegerGenerator {
 	@Override
 	public int nextInt() {
 		long threadID = Thread.currentThread().getId();
+		System.out.println("Thread ID: " + threadID);
 		int key = 1;
 		if (this.threadCounters.containsKey(threadID)) {
 			key = this.threadCounters.get(threadID);
