@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SIZE="${1:-10}"
-QUANTUM="${2:-10}	"
+QUANTUM="${2:-15}	"
 COUNT=0
 CMD="./riak-admin bucket-type create usertable '{\"props\": {\"w\": 1, \"r\": 1, \"rw\": 1, \"n_val\": ${RIAK_N_VAL:-3}, \"table_def\": \"CREATE TABLE usertable (
 		host VARCHAR NOT NULL, 
@@ -14,7 +14,7 @@ while [ $COUNT -lt $SIZE ]; do
 done
 
 CMD="$CMD 
-	, primary key ((host, worker, quantum(time, $QUANTUM, s)), host, worker, time))\"}}';"
+	, primary key ((host, worker, quantum(time, $QUANTUM, m)), host, worker, time))\"}}';"
 
 echo $CMD
 
