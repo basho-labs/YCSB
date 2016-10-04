@@ -168,15 +168,27 @@ public class RiakTSClient extends AbstractRiakClient {
 	@Override
     public Status delete(String table, String key) {
 		
-		// Build the timestamp
-    	String k = key.replace("user", "");
-    	Long lk = Long.parseLong(k) + 1;
+		long timestamp;
+		String host;
+		String workerName;
+		
+    	if (key.startsWith("user")) {
+			String k = key.replace("user", "");
+			timestamp = Long.parseLong(k);
+	    	host = hostname;
+	    	workerName = "worker";
+		} else {
+			String[] parts = key.split(",");
+			timestamp = Math.round((Long.parseLong(parts[0]) + 1) / config().threadCount());
+	    	host = parts[1];
+	    	workerName = parts[2];
+		}
     	
     	// Build the key
     	ArrayList<Cell> cells = new ArrayList<Cell>(3);
-    	cells.add(new Cell(hostname));
-        cells.add(new Cell("worker"));
-        cells.add(Cell.newTimestamp(lk));
+    	cells.add(new Cell(host));
+        cells.add(new Cell(workerName));
+        cells.add(Cell.newTimestamp(timestamp));
         
         // Delete the key
         Delete delete = new Delete.Builder(table, cells).build();
