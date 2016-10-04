@@ -33,11 +33,25 @@ import java.util.*;
 public class RiakTSClient extends AbstractRiakClient {
     
 	@Override
-    public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
-		String k = key.replace("user", "");
-    	Long lk = Long.parseLong(k) + 1;
+	public Status read(String table, String key, Set<String> fields, HashMap<String, ByteIterator> result) {
+		
+		long timestamp;
+		String host;
+		String workerName;
+		
+    	if (key.startsWith("user")) {
+			String k = key.replace("user", "");
+			timestamp = Long.parseLong(k);
+	    	host = hostname;
+	    	workerName = "worker";
+		} else {
+			String[] parts = key.split(",");
+			timestamp = Math.round((Long.parseLong(parts[0]) + 1) / config().threadCount());
+	    	host = parts[1];
+	    	workerName = parts[2];
+		}
     	
-    	final List<Cell> keyCells = Arrays.asList(new Cell(hostname), new Cell("worker"), Cell.newTimestamp(lk));
+    	final List<Cell> keyCells = Arrays.asList(new Cell(host), new Cell(workerName), Cell.newTimestamp(timestamp));
     
     	Fetch cmd = new Fetch.Builder(table, keyCells).build();
     	final QueryResult response;
@@ -66,7 +80,7 @@ public class RiakTSClient extends AbstractRiakClient {
 			String k = startkey.replace("user", "");
 			timestamp = Long.parseLong(k);
 	    	host = hostname;
-	    	workerName = "worker-" + Thread.currentThread().getId();
+	    	workerName = "worker";
 		} else {
 			String[] parts = startkey.split(",");
 			timestamp = Math.round((Long.parseLong(parts[0]) + 1) / config().threadCount());
@@ -116,7 +130,7 @@ public class RiakTSClient extends AbstractRiakClient {
 			String k = key.replace("user", "");
 	    	timestamp = Long.parseLong(k) + 1;
 	    	host = hostname;
-	    	workerName = "worker-" + Thread.currentThread().getId();
+	    	workerName = "worker";
 		} else {
 			String[] parts = key.split(",");
 	    	timestamp = Long.parseLong(parts[0]);
