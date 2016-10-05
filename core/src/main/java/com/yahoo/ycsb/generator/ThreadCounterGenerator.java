@@ -1,13 +1,13 @@
 package com.yahoo.ycsb.generator;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ThreadCounterGenerator extends IntegerGenerator {
 
-	private HashMap<Long, Integer> threadCounters;
+	private ConcurrentHashMap<Long, Integer> threadCounters;
 	
 	public ThreadCounterGenerator() {
-		this.threadCounters = new HashMap<Long, Integer>();
+		this.threadCounters = new ConcurrentHashMap<Long, Integer>();
 	}
 	
 	@Override
