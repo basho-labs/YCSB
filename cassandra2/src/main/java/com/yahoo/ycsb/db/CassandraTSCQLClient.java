@@ -278,7 +278,7 @@ public class CassandraTSCQLClient extends DB {
           .limit(1);
       stmt.setConsistencyLevel(readConsistencyLevel);
       
-      //System.out.println(stmt.toString());
+      System.out.println(stmt.toString());
       
       if (debug) {
         System.out.println(stmt.toString());
@@ -337,6 +337,26 @@ public class CassandraTSCQLClient extends DB {
   public Status scan(String table, String startkey, int recordcount,
       Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
 
+    long timestamp;
+    String host;
+    String workerName;
+    
+    int threadCount = Integer.parseInt(getProperties().getProperty("threadcount", "1"));
+      
+    if (startkey.startsWith("user")) {
+      String k = startkey.replace("user", "");
+        timestamp = Math.round(Long.parseLong(k) / threadCount) + 1;
+        host = hostname;
+        workerName = "worker";
+    } else {
+      String[] parts = startkey.split(",");
+        timestamp = Math.round(Long.parseLong(parts[0]) / threadCount) + 1;
+        host = parts[1];
+        workerName = parts[2];
+    }
+    
+    long quanta = calculateQuanta(timestamp);
+    
     try {
       Statement stmt;
       Select.Builder selectBuilder;
@@ -364,14 +384,15 @@ public class CassandraTSCQLClient extends DB {
       String initialStmt = stmt.toString();
       StringBuilder scanStmt = new StringBuilder();
       scanStmt.append(initialStmt.substring(0, initialStmt.length() - 1));
-      scanStmt.append(" WHERE ");
-      scanStmt.append(QueryBuilder.token(YCSB_KEY));
-      scanStmt.append(" >= ");
-      scanStmt.append("token('");
-      scanStmt.append(startkey);
-      scanStmt.append("')");
+      scanStmt.append(" WHERE");
+      scanStmt.append(" quanta = ").append(quanta).append("");
+      scanStmt.append(" AND host = '").append(hostname).append("'");
+      scanStmt.append(" AND worker = '").append(workerName).append("'");
+      scanStmt.append(" AND time >= ").append(timestamp);
       scanStmt.append(" LIMIT ");
       scanStmt.append(limitCount);
+
+      //System.out.println(scanStmt.toString());
 
       stmt = new SimpleStatement(scanStmt.toString());
       stmt.setConsistencyLevel(readConsistencyLevel);
@@ -401,6 +422,8 @@ public class CassandraTSCQLClient extends DB {
         result.add(tuple);
       }
 
+      //System.out.println(result.size());
+      
       return Status.OK;
 
     } catch (Exception e) {
@@ -476,8 +499,6 @@ public class CassandraTSCQLClient extends DB {
       insertStmt.value("worker", workerName);
       insertStmt.value("quanta", quanta);
       insertStmt.value("time", timestamp);
-      
-      //System.out.println(insertStmt.toString());
 
       // Add fields
       for (Map.Entry<String, ByteIterator> entry : values.entrySet()) {
