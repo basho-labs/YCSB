@@ -53,6 +53,8 @@ public class RiakTSClient extends AbstractRiakClient {
     	
     	final List<Cell> keyCells = Arrays.asList(new Cell(host), new Cell(workerName), Cell.newTimestamp(timestamp));
     
+    	System.out.println(host + "-" + workerName + "-" + timestamp);
+    	
     	Fetch cmd = new Fetch.Builder(table, keyCells).build();
     	final QueryResult response;
     	try {
@@ -144,6 +146,7 @@ public class RiakTSClient extends AbstractRiakClient {
     	cells.add(new Cell(host));
         cells.add(new Cell(workerName));
         cells.add(Cell.newTimestamp(timestamp));
+        System.out.println(host + "-" + workerName + "-" + timestamp);
         for (int valuesIndex = 0; valuesIndex < values.size(); valuesIndex++)
 		{
 			String cKey = values.keySet().toArray()[valuesIndex].toString();

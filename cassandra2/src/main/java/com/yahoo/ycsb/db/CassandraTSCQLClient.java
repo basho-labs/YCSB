@@ -422,7 +422,7 @@ public class CassandraTSCQLClient extends DB {
         result.add(tuple);
       }
 
-      //System.out.println(result.size());
+      System.out.println(result.size());
       
       return Status.OK;
 

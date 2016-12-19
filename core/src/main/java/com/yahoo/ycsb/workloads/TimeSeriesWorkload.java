@@ -43,7 +43,6 @@ public class TimeSeriesWorkload extends CoreWorkload {
 		loadRecordCount = Integer.parseInt(p.getProperty(LOAD_RECORD_COUNT_PROPERTY, Integer.toString(super.recordcount)));
 		loadThreadCount = Integer.parseInt(p.getProperty(LOAD_THREAD_COUNT_PROPERTY, Integer.toString(threadCount)));
 
-	
 		super.keysequence = new ThreadCounterGenerator();
 	}
 	
