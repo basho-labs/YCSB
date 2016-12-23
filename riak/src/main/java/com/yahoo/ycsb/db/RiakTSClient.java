@@ -121,35 +121,54 @@ public class RiakTSClient extends AbstractRiakClient {
 
     @Override
     public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-    	
-    	long timestamp;
-		String host;
-		String workerName;
-		
-		if (key.startsWith("user")) {
-			String k = key.replace("user", "");
-	    	timestamp = Long.parseLong(k) + 1;
-	    	host = hostname;
-	    	workerName = "worker";
-		} else {
-			String[] parts = key.split(",");
-	    	timestamp = Long.parseLong(parts[0]);
-	    	host = parts[1];
-	    	workerName = parts[2];
-		}
-		
-    	// Build the row
-    	ArrayList<Cell> cells = new ArrayList<Cell>(values.size() + 3);
-    	List<Row> rows = new ArrayList<Row>();
-    	cells.add(new Cell(host));
-        cells.add(new Cell(workerName));
-        cells.add(Cell.newTimestamp(timestamp));
-        for (int valuesIndex = 0; valuesIndex < values.size(); valuesIndex++)
-		{
-			String cKey = values.keySet().toArray()[valuesIndex].toString();
-			cells.add(new Cell(values.get(cKey).toString()));
-		}
-        rows.add(new Row(cells));
+      
+    
+      List<Row> rows = new ArrayList<Row>();
+      
+      String[] keys = key.split(";");
+      int batchSize = values.size() / keys.length;
+      int currentValueIndex = 0;
+      
+      int rowCount = 1;
+      
+      for (String splitKey : keys) {
+          long timestamp;
+      		String host;
+      		String workerName;
+      		
+      		if (splitKey.startsWith("user")) {
+      			  String k = splitKey.replace("user", "");
+      	    	timestamp = Long.parseLong(k) + 1;
+      	    	host = hostname;
+      	    	workerName = "worker";
+      		} else {
+      			String[] parts = splitKey.split(",");
+      	    	timestamp = Long.parseLong(parts[0]);
+      	    	host = parts[1];
+      	    	workerName = parts[2];
+      		}
+      		
+          // Build the row
+          ArrayList<Cell> cells = new ArrayList<Cell>(batchSize + 3);
+          
+          cells.add(new Cell(host));
+          cells.add(new Cell(workerName));
+          cells.add(Cell.newTimestamp(timestamp));
+          int trackValuesIndex = 0;
+          String[] keyset = values.keySet().toArray(new String[values.keySet().size()]);
+          
+          for (int valuesIndex = currentValueIndex; valuesIndex < batchSize * rowCount; valuesIndex++)
+      		{
+            String value = values.get(keyset[valuesIndex]).toString();
+      			cells.add(new Cell(value));
+      			//System.out.println(value + " - " + cells.size());
+      			trackValuesIndex = valuesIndex;
+      		}
+
+          rowCount++;
+          currentValueIndex = trackValuesIndex+1;
+          rows.add(new Row(cells));
+      }
        
         final Store cmd = new Store.Builder(table)
                 .withRows(rows)
@@ -158,8 +177,8 @@ public class RiakTSClient extends AbstractRiakClient {
         try {
             riakClient.execute(cmd);
         } catch (Exception e) {
-        	logger.error(e.getMessage());
-            return Status.ERROR;
+          logger.error(e.getMessage());
+          return Status.ERROR;
         }
 
         return Status.OK;
