@@ -771,6 +771,7 @@ public class CoreWorkload extends Workload
 	public void doTransactionInsert(DB db)
 	{
 	  int lastkeynum = -1;
+	  List<Integer> keys = new ArrayList<Integer>();
 	  
 		try {
 		  String dbkeys = "";
@@ -786,13 +787,16 @@ public class CoreWorkload extends Workload
 		      dbkeys += ";" + dbkey;
 		    }
 		    
+		    keys.add(keynum);
 		    lastkeynum = keynum;
 		  }
 			
 			HashMap<String, ByteIterator> values = buildValues(dbkeys);
 			db.insert(table,dbkeys,values);
 		} finally {
-      transactioninsertkeysequence.acknowledge(lastkeynum);
+		  for (int keynum : keys) {
+		    transactioninsertkeysequence.acknowledge(keynum);
+		  }
 		}
 	}
 }
