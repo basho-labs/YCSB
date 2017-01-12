@@ -17,5 +17,5 @@ CMD="$CMD
 	, primary key ((host, worker, quantum(time, $QUANTUM, s)), host, worker, time))\"}}';"
 
 echo $CMD
-
+echo "sleep 60;"
 echo "./riak-admin bucket-type activate usertable"
