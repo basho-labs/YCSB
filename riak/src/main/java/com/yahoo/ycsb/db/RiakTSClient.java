@@ -102,7 +102,8 @@ public class RiakTSClient extends AbstractRiakClient {
         try {
             response = riakClient.execute(cmd);
         } catch (Exception e) {
-        	logger.error(e.getMessage());
+          System.out.println(e.getMessage());
+        	 logger.error(e.getMessage());
             return Status.ERROR;
         }
 
