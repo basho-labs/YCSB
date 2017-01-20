@@ -144,6 +144,9 @@ public class RiakTSClient extends AbstractRiakClient {
       		} else {
       			String[] parts = splitKey.split(",");
       	    	timestamp = Long.parseLong(parts[0]);
+      	    	if (timestamp == 0) {
+      	    	  timestamp = 1;
+      	    	}
       	    	host = parts[1];
       	    	workerName = parts[2];
       		}
