@@ -42,6 +42,7 @@ import java.util.Vector;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The relative 
@@ -288,6 +289,11 @@ public class CoreWorkload extends Workload
 	public static final String BATCH_SIZE_PROPERTY_DEFAULT="1";
 	
 	public static int batchsize;
+	
+	public static final String DATA_TYPE_PROPERTY="datatype";
+	public static final String DATA_TYPE_DEFAULT="binary";
+	
+	public static String datatype;
   
   /**
    * Default value of the percentage operations accessing the hot set.
@@ -309,8 +315,8 @@ public class CoreWorkload extends Workload
 	boolean orderedinserts;
 
 	int recordcount;
-
-    private Measurements _measurements = Measurements.getMeasurements();
+	
+  private Measurements _measurements = Measurements.getMeasurements();
 	
 	protected static IntegerGenerator getFieldLengthGenerator(Properties p) throws WorkloadException{
 		IntegerGenerator fieldlengthgenerator;
@@ -364,6 +370,8 @@ public class CoreWorkload extends Workload
 		String scanlengthdistrib=p.getProperty(SCAN_LENGTH_DISTRIBUTION_PROPERTY,SCAN_LENGTH_DISTRIBUTION_PROPERTY_DEFAULT);
 		
 		int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
+		
+		datatype=p.getProperty(DATA_TYPE_PROPERTY, DATA_TYPE_DEFAULT);
 		
 		readallfields=Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT));
 		writeallfields=Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
@@ -508,16 +516,21 @@ public class CoreWorkload extends Workload
   /**
    * Builds values for all fields.
    */
-  protected HashMap<String, ByteIterator> buildValues(String key) {        
+  protected HashMap<String, ByteIterator> buildValues(String key) {   
     HashMap<String,ByteIterator> values = new HashMap<String,ByteIterator>();
-
     for (String fieldkey : fieldnames) {
-      ByteIterator data;
-      if (dataintegrity) {
-        data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
+      ByteIterator data = null;
+      if (datatype.compareTo("integer") == 0) {
+        data = new StringByteIterator(Integer.toString(ThreadLocalRandom.current().nextInt()));
+      } else if (datatype.compareTo("double") == 0) {
+        data = new StringByteIterator(Double.toString(ThreadLocalRandom.current().nextDouble()));
       } else {
-        //fill with random data
-        data = new RandomByteIterator(fieldlengthgenerator.nextInt());
+        if (dataintegrity) {
+          data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
+        } else {
+          //fill with random data
+          data = new RandomByteIterator(fieldlengthgenerator.nextInt());
+        }
       }
       values.put(fieldkey,data);
     }

@@ -160,8 +160,7 @@ public class RiakTSClient extends AbstractRiakClient {
           for (int valuesIndex = currentValueIndex; valuesIndex < batchSize * rowCount; valuesIndex++)
       		{
             String value = values.get(keyset[valuesIndex]).toString();
-      			cells.add(new Cell(value));
-      			//System.out.println(value + " - " + cells.size());
+      			cells.add(valueToCell(value));
       			trackValuesIndex = valuesIndex;
       		}
 
@@ -184,7 +183,17 @@ public class RiakTSClient extends AbstractRiakClient {
         return Status.OK;
     }
 
-	@Override
+	private Cell valueToCell(String value) {     
+      if (config().dataType().compareTo("integer") == 0) {
+        return new Cell(Integer.parseInt(value));
+      } else if (config().dataType().compareTo("double") == 0) {
+        return new Cell(Double.parseDouble(value));
+      } else {
+        return new Cell(value);
+      }
+    }
+
+  @Override
     public Status delete(String table, String key) {
 		
 		long timestamp;
