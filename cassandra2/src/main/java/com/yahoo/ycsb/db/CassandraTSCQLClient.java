@@ -427,8 +427,6 @@ public class CassandraTSCQLClient extends DB {
       return Status.OK;
 
     } catch (Exception e) {
-      e.printStackTrace();
-      System.out.println("Error scanning with startkey: " + startkey);
       return Status.ERROR;
     }
 
