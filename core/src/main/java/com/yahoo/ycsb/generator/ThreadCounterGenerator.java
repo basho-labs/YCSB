@@ -5,9 +5,16 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class ThreadCounterGenerator extends IntegerGenerator {
 
 	private ConcurrentSkipListMap<Long, Integer> threadCounters;
+	private int delta;
 	
 	public ThreadCounterGenerator() {
 		this.threadCounters = new ConcurrentSkipListMap<Long, Integer>();
+		this.delta = 1;
+	}
+	
+	public ThreadCounterGenerator(int delta) {
+	  this.threadCounters = new ConcurrentSkipListMap<Long, Integer>();
+	  this.delta = delta;
 	}
 	
 	@Override
@@ -18,7 +25,7 @@ public class ThreadCounterGenerator extends IntegerGenerator {
 			key = this.threadCounters.get(threadID);
 		}
 		
-		this.threadCounters.put(threadID, key+1);		
+		this.threadCounters.put(threadID, key+this.delta);		
 		return key;
 	}
 

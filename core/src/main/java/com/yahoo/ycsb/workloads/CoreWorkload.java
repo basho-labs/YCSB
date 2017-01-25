@@ -292,8 +292,12 @@ public class CoreWorkload extends Workload
 	
 	public static final String DATA_TYPE_PROPERTY="datatype";
 	public static final String DATA_TYPE_DEFAULT="binary";
-	
 	public static String datatype;
+	
+	public static final String DELTA_PROPERY="keydelta";
+	public static final String DELTA_DEFAULT="1";
+	public static int delta;
+	
   
   /**
    * Default value of the percentage operations accessing the hot set.
@@ -372,6 +376,7 @@ public class CoreWorkload extends Workload
 		int insertstart=Integer.parseInt(p.getProperty(INSERT_START_PROPERTY,INSERT_START_PROPERTY_DEFAULT));
 		
 		datatype=p.getProperty(DATA_TYPE_PROPERTY, DATA_TYPE_DEFAULT);
+		delta=Integer.parseInt(p.getProperty(DELTA_PROPERY, DELTA_DEFAULT));
 		
 		readallfields=Boolean.parseBoolean(p.getProperty(READ_ALL_FIELDS_PROPERTY,READ_ALL_FIELDS_PROPERTY_DEFAULT));
 		writeallfields=Boolean.parseBoolean(p.getProperty(WRITE_ALL_FIELDS_PROPERTY,WRITE_ALL_FIELDS_PROPERTY_DEFAULT));
@@ -402,7 +407,7 @@ public class CoreWorkload extends Workload
 			orderedinserts=true;
 		}
 
-		keysequence=new CounterGenerator(insertstart);
+		keysequence=new CounterGenerator(insertstart, delta);
 		operationchooser=new DiscreteGenerator();
 		if (readproportion>0)
 		{
@@ -429,7 +434,7 @@ public class CoreWorkload extends Workload
 			operationchooser.addValue(readmodifywriteproportion,"READMODIFYWRITE");
 		}
 
-		transactioninsertkeysequence=new AcknowledgedCounterGenerator(recordcount);
+		transactioninsertkeysequence=new AcknowledgedCounterGenerator(recordcount, delta);
 		if (requestdistrib.compareTo("uniform")==0)
 		{
 			keychooser=new UniformIntegerGenerator(0,recordcount-1);

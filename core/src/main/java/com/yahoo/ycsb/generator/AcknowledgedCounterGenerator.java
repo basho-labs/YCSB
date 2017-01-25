@@ -33,7 +33,8 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 	private final ReentrantLock lock;
 	private final boolean[] window;
 	private volatile int limit;
-
+	private int delta;
+	
 	/**
 	 * Create a counter that starts at countstart.
 	 */
@@ -43,7 +44,17 @@ public class AcknowledgedCounterGenerator extends CounterGenerator
 		lock = new ReentrantLock();
 		window = new boolean[WINDOW_SIZE];
 		limit = countstart - 1;
+		delta = 1;
 	}
+	
+	public AcknowledgedCounterGenerator(int countstart, int keydelta)
+  {
+    super(countstart, keydelta);
+    lock = new ReentrantLock();
+    window = new boolean[WINDOW_SIZE];
+    limit = countstart - 1;
+    delta = keydelta;
+  }
 
 	/**
 	 * In this generator, the highest acknowledged counter value

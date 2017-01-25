@@ -17,6 +17,7 @@
 
 package com.yahoo.ycsb.generator;
 
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -25,30 +26,39 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CounterGenerator extends IntegerGenerator
 {
 	final AtomicInteger counter;
+	private int delta;
 
 	/**
 	 * Create a counter that starts at countstart
 	 */
+	
+	public CounterGenerator(int countstart, int deltacount) 
+  {
+    counter=new AtomicInteger(countstart);
+    setLastInt(counter.get()-1);
+    this.delta = deltacount;
+  }
+	
 	public CounterGenerator(int countstart)
 	{
-		counter=new AtomicInteger(countstart);
-		setLastInt(counter.get()-1);
+	  counter=new AtomicInteger(countstart);
+    setLastInt(counter.get()-1);
+    this.delta=1;
 	}
-	
-	/**
+  /**
 	 * If the generator returns numeric (integer) values, return the next value as an int. Default is to return -1, which
 	 * is appropriate for generators that do not return numeric values.
 	 */
 	public int nextInt() 
 	{
-		int ret = counter.getAndIncrement();
+		int ret = counter.getAndAdd(this.delta);
 		setLastInt(ret);
 		return ret;
 	}
 	@Override
 	public int lastInt()
 	{
-	                return counter.get() - 1;
+	  return counter.get() - this.delta;
 	}
 	@Override
 	public double mean() {

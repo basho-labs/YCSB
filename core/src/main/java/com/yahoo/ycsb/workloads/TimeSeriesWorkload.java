@@ -28,6 +28,8 @@ public class TimeSeriesWorkload extends CoreWorkload {
 	public static final String LOAD_THREAD_COUNT_PROPERTY="loadthreadcount";
 	private static int loadThreadCount;
 	
+	private int delta;
+	
 	@Override
 	public void init(Properties p) throws WorkloadException
 	{
@@ -42,9 +44,9 @@ public class TimeSeriesWorkload extends CoreWorkload {
 		threadCount = Integer.parseInt(p.getProperty(THREAD_COUNT_PROPERTY, "1"));
 		loadRecordCount = Integer.parseInt(p.getProperty(LOAD_RECORD_COUNT_PROPERTY, Integer.toString(super.recordcount)));
 		loadThreadCount = Integer.parseInt(p.getProperty(LOAD_THREAD_COUNT_PROPERTY, Integer.toString(threadCount)));
-
+		delta = super.delta;
 	
-		super.keysequence = new ThreadCounterGenerator();
+		super.keysequence = new ThreadCounterGenerator(delta);
 	}
 	
 	@Override
