@@ -94,7 +94,7 @@ public class RiakTSClient extends AbstractRiakClient {
                 " host = '%s' " +
                 " AND worker = '%s' " +
                 " AND time >= %d AND time < %d",
-                table, host, workerName, timestamp, timestamp+recordcount);
+                table, host, workerName, timestamp, timestamp+(recordcount*config().delta()));
                 
         final Query cmd = new Query.Builder(query).build();
 

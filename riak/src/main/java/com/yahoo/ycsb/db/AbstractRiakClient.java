@@ -53,6 +53,7 @@ public abstract class AbstractRiakClient extends DB {
         private static final String SCAN_SIZE_PROPERTY="riak.scan_size";
         
         private static final String DATA_TYPE_PROPERTY="datatype";
+        private static final String DELTA_PROPERTY="keydelta";
 
         private String bucketType;
         private int defaultPort;
@@ -64,6 +65,7 @@ public abstract class AbstractRiakClient extends DB {
         private int threadCount;
         private int scan_size;
         private String datatype;
+        private int delta;
 
         private Config() {}
 
@@ -105,6 +107,8 @@ public abstract class AbstractRiakClient extends DB {
             cfg.scan_size = Integer.parseInt(props.getProperty(SCAN_SIZE_PROPERTY, "-1"));
 
             cfg.datatype = props.getProperty(DATA_TYPE_PROPERTY, "binary");
+            
+            cfg.delta = Integer.parseInt(props.getProperty(DELTA_PROPERTY, "1"));
             
             return cfg;
         }
@@ -154,6 +158,10 @@ public abstract class AbstractRiakClient extends DB {
         
         public String dataType() {
           return datatype;
+        }
+        
+        public int delta() {
+          return delta;
         }
     }
 
