@@ -59,8 +59,8 @@ public class TimeSeriesWorkload extends CoreWorkload {
 	}
 	
 	private long normalizeKeyNum(long keynum) {
-	  if (keynum > loadRecordCount) {
-	    return ThreadLocalRandom.current().nextLong(loadRecordCount);
+	  if (keynum > (loadRecordCount * delta)) {
+	    return ThreadLocalRandom.current().nextLong((loadRecordCount * delta));
 	  } else {
 	    return keynum;
 	  }

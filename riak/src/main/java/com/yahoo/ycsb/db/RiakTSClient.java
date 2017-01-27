@@ -101,6 +101,7 @@ public class RiakTSClient extends AbstractRiakClient {
         final QueryResult response;
         try {
             response = riakClient.execute(cmd);
+            //System.out.println(response.getRowsCount());
         } catch (Exception e) {
         	 logger.error(e.getMessage());
             return Status.ERROR;
@@ -121,8 +122,6 @@ public class RiakTSClient extends AbstractRiakClient {
 
     @Override
     public Status insert(String table, String key, HashMap<String, ByteIterator> values) {
-      
-    
       List<Row> rows = new ArrayList<Row>();
       
       String[] keys = key.split(";");
