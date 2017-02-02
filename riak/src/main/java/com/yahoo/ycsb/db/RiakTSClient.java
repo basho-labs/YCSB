@@ -26,6 +26,7 @@ import com.yahoo.ycsb.ByteIterator;
 import com.yahoo.ycsb.Status;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Sergey Galkin <srggal at gmail dot com>
@@ -56,7 +57,7 @@ public class RiakTSClient extends AbstractRiakClient {
     	Fetch cmd = new Fetch.Builder(table, keyCells).build();
     	final QueryResult response;
     	try {
-    		response = riakClient.execute(cmd);
+    		response = riakClient.execute(cmd, config().timeout(), TimeUnit.SECONDS);
     	} catch (Exception e) {
     		logger.error(e.getMessage());
     		return Status.ERROR;
@@ -100,7 +101,7 @@ public class RiakTSClient extends AbstractRiakClient {
 
         final QueryResult response;
         try {
-            response = riakClient.execute(cmd);
+            response = riakClient.execute(cmd, config().timeout(), TimeUnit.SECONDS);
             //System.out.println(response.getRowsCount());
         } catch (Exception e) {
         	 logger.error(e.getMessage());
@@ -176,7 +177,7 @@ public class RiakTSClient extends AbstractRiakClient {
                 .build();
 
         try {
-            riakClient.execute(cmd);
+            riakClient.execute(cmd, config().timeout(), TimeUnit.SECONDS);
         } catch (Exception e) {
           logger.error(e.getMessage());
           return Status.ERROR;
@@ -223,7 +224,7 @@ public class RiakTSClient extends AbstractRiakClient {
         // Delete the key
         Delete delete = new Delete.Builder(table, cells).build();
         try {
-			riakClient.execute(delete);
+			riakClient.execute(delete, config().timeout(), TimeUnit.SECONDS);
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 			return Status.ERROR;

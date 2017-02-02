@@ -54,6 +54,7 @@ public abstract class AbstractRiakClient extends DB {
         
         private static final String DATA_TYPE_PROPERTY="datatype";
         private static final String DELTA_PROPERTY="keydelta";
+        private static final String TIMEOUT_PROPERTY="timeout";
 
         private String bucketType;
         private int defaultPort;
@@ -66,6 +67,7 @@ public abstract class AbstractRiakClient extends DB {
         private int scan_size;
         private String datatype;
         private int delta;
+        private long timeout;
 
         private Config() {}
 
@@ -109,6 +111,8 @@ public abstract class AbstractRiakClient extends DB {
             cfg.datatype = props.getProperty(DATA_TYPE_PROPERTY, "binary");
             
             cfg.delta = Integer.parseInt(props.getProperty(DELTA_PROPERTY, "1"));
+            
+            cfg.timeout = Long.parseLong(props.getProperty(TIMEOUT_PROPERTY, "60"));
             
             return cfg;
         }
@@ -162,6 +166,10 @@ public abstract class AbstractRiakClient extends DB {
         
         public int delta() {
           return delta;
+        }
+        
+        public long timeout() {
+          return timeout;
         }
     }
 
